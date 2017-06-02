@@ -252,6 +252,14 @@ module.exports = function ({ types: t, template: template }) {
       },
 
       /*
+       * Top-level return must be falsy
+       */
+      ReturnStatement (path, state) {
+        if (state.functionDepth === 0 && path.node.argument)
+          path.get('argument').replaceWith(t.logicalExpression('&&', path.node.argument, t.identifier('undefined')));
+      },
+
+      /*
        * Detect top-level scope redefine of "self", "global" or "module"
        */
       VariableDeclarator (path, state) {

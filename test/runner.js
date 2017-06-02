@@ -15,6 +15,9 @@ describe('Transformations', () => {
 
       const options = {
         babelrc: false,
+        parserOpts: {
+          allowReturnOutsideFunction: true
+        },
         plugins: fs.existsSync(optionsPath) ? [[plugin, require(optionsPath)]] : [plugin]
       };
 
