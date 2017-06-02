@@ -30,6 +30,20 @@ module.exports = function ({ types: t, template: template }) {
       if (dep.literal.value === depModule)
         return dep;
     }
+    // apply any map configuration
+    if (state.opts.map) {
+      let match;
+      for (let target in state.opts.map) {
+        if (!Object.hasOwnProperty.call(state.opts.map, target))
+          continue;
+        if (depModule.startsWith(target) &&
+            (depModule.length === target.length || depModule[target.length] === '/') &&
+            (!match || match.length < target.length))
+          match = target;
+      }
+      if (match)
+        depModule = state.opts.map[match] + depModule.substr(match.length);
+    }
     let dep = {
       literal: t.stringLiteral(depModule),
       exports: t.identifier(depName + 'Exports'),
