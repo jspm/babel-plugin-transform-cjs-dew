@@ -1,3 +1,3 @@
 module.exports = {
-  filename: 'blah.js'
+  filename: 'asdf.js'
 };

@@ -25,6 +25,21 @@ module.exports = function ({ types: t, template: template }) {
     ]))
   ]);
 
+  // given a string literal expression
+  // resolve it as far as we can, by resolving the base part,
+  // and the trailing part as a wildcard
+  function partialResolve (expr, resolve) {
+    if (t.isStringLiteral(expr)) {
+      return t.stringLiteral(resolve(expr.value));
+    }
+    else if (t.isTemplateLiteral(expr)) {
+
+    }
+    else if (t.isBinaryExpression(expr)) {
+
+    }
+  }
+
   function addDependency (state, depName, depModule) {
     for (let dep of state.deps) {
       if (dep.literal.value === depModule)
@@ -173,15 +188,13 @@ module.exports = function ({ types: t, template: template }) {
        */
       CallExpression (path, state) {
         if (t.isIdentifier(path.node.callee, { name: 'require' })) {
-          if (path.node.arguments.length !== 1)
-            throw new Error('Only require statements with a single argument are supported by this transform.');
-
-          if (!t.isStringLiteral(path.node.arguments[0]))
+          let arg = path.node.arguments[0];
+          if (!t.isStringLiteral(arg))
             throw new Error('Dynamic require expressions such as `require(sourceVar)` are not supported by this transform.');
 
           let dep = addDependency(state,
-            path.scope.getProgramParent().generateUidIdentifier(path.node.arguments[0].value).name,
-            path.node.arguments[0].value
+            path.scope.getProgramParent().generateUidIdentifier(arg.value).name,
+            arg.value
           );
 
           path.replaceWith(requireSub(dep));
@@ -193,8 +206,63 @@ module.exports = function ({ types: t, template: template }) {
        * Detect unsupported require lookups
        */
       MemberExpression (path, state) {
-        if (t.isIdentifier(path.object, { name: 'require' }) && !path.scope.hasBinding('require'))
-          throw new Error('require.resolve, require.main, require.extensions and require.cache, etc are not supported by this transform.');
+        if (t.isIdentifier(path.node.object, { name: 'require' }) && !path.scope.hasBinding('require')) {
+          let name = path.node.computed ? path.node.property.value : path.node.property.name;
+          if (name)
+          switch (name) {
+            case 'resolve':
+              if (t.isCallExpression(path.parent) && path.parent.callee === path.node &&
+                  path.parent.arguments.length === 1 && state.opts.requireResolve) {
+                let resolveArgPath = path.parentPath.get('arguments.0');
+                resolveArgPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.requireResolve));
+              }
+            break;
+            case 'main':
+              path.replaceWith(t.identifier('undefined'));
+            break;
+            case 'extensions':
+            case 'cache':
+              path.replaceWith(t.objectExpression([]));
+            break;
+          }
+        }
+        if (t.isIdentifier(path.node.object, { name: 'module' }) && !path.scope.hasBinding('module')) {
+          let name = path.node.computed ? path.node.property.value : path.node.property.name;
+          if (name)
+          switch (name) {
+            case 'id':
+            case 'filename':
+              if (state.opts.filename)
+                path.replaceWith(t.stringLiteral(state.opts.filename));
+            break;
+            case 'parent':
+              path.replaceWith(t.identifier('undefined'));
+            break;
+            case 'loaded':
+            break;
+            case 'children':
+              path.replaceWith(t.objectExpression([]));
+            break;
+            case 'paths':
+              path.replaceWith(t.objectExpression([]));
+            break;
+            // require alternative
+            case 'require':
+              if (t.isCallExpression(path.parent) && path.parent.callee === path.node) {
+                let arg = path.parent.arguments[0];
+                if (!t.isStringLiteral(arg))
+                  throw new Error('Dynamic require expressions such as `require(sourceVar)` are not supported by this transform.');
+
+                let dep = addDependency(state,
+                  path.scope.getProgramParent().generateUidIdentifier(arg.value).name,
+                  arg.value
+                );
+
+                path.parentPath.replaceWith(requireSub(dep));
+              }
+            break;
+          }
+        }
       },
 
       Scope: {
@@ -244,6 +312,13 @@ module.exports = function ({ types: t, template: template }) {
           state.hasBuffer = true;
         if (!state.usesModule && identifierName === 'module' && !path.scope.hasBinding('module'))
           state.usesModule = true;
+        if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename'))
+          path.replaceWith(t.stringLiteral(state.opts.filename));
+        if (identifierName === '__dirname' && state.opts.filename && !path.scope.hasBinding('__dirname')) {
+          let parts = state.opts.filename.split('/');
+          parts.pop();
+          path.replaceWith(t.stringLiteral(parts.join('/')));
+        }
 
         if (identifierName === 'global' && !path.scope.hasBinding('global')) {
           state.usesGlobal = true;

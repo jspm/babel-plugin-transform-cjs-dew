@@ -14,16 +14,18 @@ require('babel-core').transform('<source>', {
   },
   plugins: [
     ['transform-cjs-esm', {
+      filename: 'custom-filename.js',
       define: {
-        'process.env.NODE_ENV': '"development"',
-        '__filename': '"custom-filename.js"',
-        '__dirname': JSON.stringify('custom-dirname.js')
+        'process.env.NODE_ENV': '"development"'
       },
       map (path) {
         if (path === 'process')
           return 'process-path';
         if (path === './x')
           return './x.js';
+      },
+      requireResolve (name) {
+        return '/resolved'
       }
     }]
   ]
