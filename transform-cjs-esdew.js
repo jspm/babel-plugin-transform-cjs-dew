@@ -7,6 +7,8 @@ module.exports = function ({ types: t, template: template }) {
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
   const requireSub = dep => {
+    if (!dep)
+      return t.nullLiteral();
     return t.logicalExpression('||',
       t.logicalExpression('&&', dep.execute, t.callExpression(dep.execute, [])),
       dep.exports
@@ -26,21 +28,42 @@ module.exports = function ({ types: t, template: template }) {
   ]);
 
   // given a string literal expression
-  // resolve it as far as we can, by resolving the base part,
-  // and the trailing part as a wildcard
+  // partially resolve the leading part if a string literal
   function partialResolve (expr, resolve) {
     if (t.isStringLiteral(expr)) {
       return t.stringLiteral(resolve(expr.value));
     }
     else if (t.isTemplateLiteral(expr)) {
-
+      let partialResolve = resolve(expr.quasis[0].value.cooked);
+      expr.quasis[0] = t.templateElement({
+        raw: partialResolve
+      });
+      return expr;
     }
-    else if (t.isBinaryExpression(expr)) {
-
+    else if (t.isBinaryExpression(expr) && expr.operator === '+' && t.isStringLiteral(expr.left)) {
+      expr.left.value = resolve(expr.left.value);
     }
+    return expr;
   }
 
-  function addDependency (state, depName, depModule) {
+  function addDependency (path, state, depModuleArg) {
+    let depModule;
+    if (t.isStringLiteral(depModuleArg)) {
+      depModule = depModuleArg.value;
+    }
+    else if (t.isTemplateLiteral(depModuleArg)) {
+      if (depModuleArg.expressions.length !== 0)
+        return;
+      depModule = depModuleArg.quasis[0].value.cooked;
+    }
+    else {
+      // no support for dynamic require currently
+      // just becomes a "null" module
+      return;
+    }
+
+    let depName = path.scope.getProgramParent().generateUidIdentifier(depModule).name;
+
     for (let dep of state.deps) {
       if (dep.literal.value === depModule)
         return dep;
@@ -118,16 +141,14 @@ module.exports = function ({ types: t, template: template }) {
            * Add process and Buffer imports
            */
           if (state.hasProcess) {
-            let processModule = path.scope.generateUidIdentifier('process');
-            let dep = addDependency(state, processModule.name, 'process');
+            let dep = addDependency(path, state, t.stringLiteral('process'));
             path.unshiftContainer('body', t.variableDeclaration('var', [
               t.variableDeclarator(t.identifier('process'), requireSub(dep))
             ]));
           }
 
           if (state.hasBuffer) {
-            let bufferModule = path.scope.generateUidIdentifier('Buffer');
-            let dep = addDependency(state, bufferModule.name, 'process');
+            let dep = addDependency(path, state, t.stringLiteral('Buffer'));
             path.unshiftContainer('body', t.variableDeclaration('var', [
               t.variableDeclarator(t.identifier('Buffer'), requireSub(dep))
             ]));
@@ -187,18 +208,8 @@ module.exports = function ({ types: t, template: template }) {
        * Require support
        */
       CallExpression (path, state) {
-        if (t.isIdentifier(path.node.callee, { name: 'require' })) {
-          let arg = path.node.arguments[0];
-          if (!t.isStringLiteral(arg))
-            throw new Error('Dynamic require expressions such as `require(sourceVar)` are not supported by this transform.');
-
-          let dep = addDependency(state,
-            path.scope.getProgramParent().generateUidIdentifier(arg.value).name,
-            arg.value
-          );
-
-          path.replaceWith(requireSub(dep));
-        }
+        if (t.isIdentifier(path.node.callee, { name: 'require' }))
+          path.replaceWith(requireSub(addDependency(path, state, path.node.arguments[0])));
       },
 
       /*
@@ -214,7 +225,7 @@ module.exports = function ({ types: t, template: template }) {
               if (t.isCallExpression(path.parent) && path.parent.callee === path.node &&
                   path.parent.arguments.length === 1 && state.opts.requireResolve) {
                 let resolveArgPath = path.parentPath.get('arguments.0');
-                resolveArgPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.requireResolve));
+                path.parentPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.requireResolve));
               }
             break;
             case 'main':
@@ -248,18 +259,8 @@ module.exports = function ({ types: t, template: template }) {
             break;
             // require alternative
             case 'require':
-              if (t.isCallExpression(path.parent) && path.parent.callee === path.node) {
-                let arg = path.parent.arguments[0];
-                if (!t.isStringLiteral(arg))
-                  throw new Error('Dynamic require expressions such as `require(sourceVar)` are not supported by this transform.');
-
-                let dep = addDependency(state,
-                  path.scope.getProgramParent().generateUidIdentifier(arg.value).name,
-                  arg.value
-                );
-
-                path.parentPath.replaceWith(requireSub(dep));
-              }
+              if (t.isCallExpression(path.parent) && path.parent.callee === path.node)
+                path.parentPath.replaceWith(requireSub(addDependency(path, state, path.parent.arguments[0])));
             break;
           }
         }

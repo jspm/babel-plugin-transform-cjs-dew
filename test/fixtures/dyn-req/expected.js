@@ -1,3 +1,4 @@
+import { exports as _xExports, __esdew as _xExecute } from './x';
 export var exports = {};
 var module = {
   get exports() {
@@ -11,13 +12,6 @@ var module = {
 };
 export var __esdew = function () {
   __esdew = null;
-  delete {}['asdf'];
-  ({})['.yay'] = function () {};
-
-  if (undefined === module) {
-    console.log('cli');
-  }
-
-  var path = '/resolved';
-  fs.readFile(path);
+  module.exports = null;
+  _xExecute && _xExecute() || _xExports;
 };
