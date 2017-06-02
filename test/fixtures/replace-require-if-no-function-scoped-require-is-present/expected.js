@@ -1,21 +1,19 @@
-import * as _foo from 'foo';
-import * as _bar from 'bar/';
-var exports = {},
-    module = {
-  exports: exports
+import { exports as _fooExports, __esdew as _fooExecute } from 'foo';
+import { exports as _barExports, __esdew as _barExecute } from 'bar/';
+export var exports = {};
+export var __esdew = function () {
+  __esdew = null;
+
+
+  (function () {
+
+    if (false) {
+      _fooExecute && _fooExecute() || _fooExports;
+      _barExecute && _barExecute() || _barExports;
+    }
+
+    if (true && eval('typeof require') != 'undefined') {
+      exports.cjs = true;
+    }
+  })();
 };
-
-
-(function () {
-
-  if (false) {
-    _foo.__useDefault ? _foo.default : _foo;
-    _bar.__useDefault ? _bar.default : _bar;
-  }
-
-  if (true && eval('typeof require') != 'undefined') {
-    exports.cjs = true;
-  }
-})();
-export var __useDefault = true;
-export default module.exports;

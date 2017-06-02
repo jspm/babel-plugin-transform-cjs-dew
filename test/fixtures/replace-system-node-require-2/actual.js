@@ -1,1 +1,1 @@
-module.exports = System._nodeRequire ? process : require('foo');
+module.exports = System._nodeRequire && require('foo') || process;

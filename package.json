@@ -8,10 +8,10 @@
   },
   "author": "guybedford",
   "license": "MIT",
-  "main": "transform-cjs-esm.js",
+  "main": "transform-cjs-esdew.js",
   "devDependencies": {
     "babel-core": "^6.24.1",
-    "mocha": "^3.2.0"
+    "mocha": "^3.4.2"
   },
   "scripts": {
     "test": "mocha"

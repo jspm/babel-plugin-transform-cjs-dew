@@ -1,7 +1,5 @@
-var exports = {},
-    module = {
-  exports: exports
+export var exports = {};
+export var __esdew = function () {
+  __esdew = null;
+  "production";
 };
-"production";
-export var __useDefault = true;
-export default module.exports;

@@ -1,13 +1,11 @@
-var exports = {},
-    module = {
-  exports: exports
-};
-if (define) {
-  if (typeof define === 'function' && define.amd) {
-    define([], function () {
-      return {};
-    });
+export var exports = {};
+export var __esdew = function () {
+  __esdew = null;
+  if (define) {
+    if (typeof define === 'function' && define.amd) {
+      define([], function () {
+        return {};
+      });
+    }
   }
-}
-export var __useDefault = true;
-export default module.exports;
+};

@@ -1,8 +1,43 @@
 module.exports = function ({ types: t, template: template }) {
-  const exportUseDefault = t.exportNamedDeclaration(
-      t.variableDeclaration('var', [t.variableDeclarator(t.identifier('__useDefault'), t.booleanLiteral(true))]), []);
+  const exportsIdentifier = t.identifier('exports');
+  const executeIdentifier = t.identifier('__esdew');
+
+  const exportExports = t.exportNamedDeclaration(
+      t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, t.objectExpression([]))]), []);
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
+  const requireSub = dep => {
+    return t.logicalExpression('||',
+      t.logicalExpression('&&', dep.execute, t.callExpression(dep.execute, [])),
+      dep.exports
+    );
+  };
+  const moduleDeclarator = t.variableDeclaration('var', [
+    t.variableDeclarator(t.identifier('module'), t.objectExpression([
+      t.objectMethod('get', exportsIdentifier, [], t.blockStatement([
+        t.returnStatement(exportsIdentifier)
+      ])),
+      t.objectMethod('set', exportsIdentifier, [t.identifier('_exports')], t.blockStatement([
+        t.expressionStatement(
+          t.assignmentExpression('=', exportsIdentifier, t.identifier('_exports'))
+        )
+      ]))
+    ]))
+  ]);
+
+  function addDependency (state, depName, depModule) {
+    for (let dep of state.deps) {
+      if (dep.literal.value === depModule)
+        return dep;
+    }
+    let dep = {
+      literal: t.stringLiteral(depModule),
+      exports: t.identifier(depName + 'Exports'),
+      execute: t.identifier(depName + 'Execute'),
+    };
+    state.deps.push(dep)
+    return dep;
+  }
 
   return {
     visitor: {
@@ -45,89 +80,77 @@ module.exports = function ({ types: t, template: template }) {
           state.globalIdentifier = path.scope.generateUidIdentifier('global');
           state.usesGlobal = false;
           state.redefinesSelfOrGlobal = false;
-          state.redefinesModule = false;
+          state.usesModule = false;
         },
         exit (path, state) {
           state.functionDepth = -1;
-
-          if (state.redefinesSelfOrGlobal && state.usesGlobal) {
-            path.node.body = [
-              t.expressionStatement(t.callExpression(t.functionExpression(null, [], t.blockStatement(path.node.body)), []))
-            ];
-          }
 
           /*
            * Add process and Buffer imports
            */
           if (state.hasProcess) {
             let processModule = path.scope.generateUidIdentifier('process');
-            state.deps.push({
-              depLiteral: t.stringLiteral('process'),
-              depIdentifier: processModule
-            });
+            let dep = addDependency(state, processModule.name, 'process');
             path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('process'), t.conditionalExpression(
-                t.memberExpression(processModule, t.identifier('__useDefault')),
-                t.memberExpression(processModule, t.identifier('default')),
-                processModule
-              ))
+              t.variableDeclarator(t.identifier('process'), requireSub(dep))
             ]));
           }
 
           if (state.hasBuffer) {
-            let bufferModule = path.scope.generateUidIdentifier(path.node.name);
-            state.deps.push({
-              depLiteral: t.stringLiteral('buffer'),
-              depIdentifier: bufferModule
-            });
+            let bufferModule = path.scope.generateUidIdentifier('Buffer');
+            let dep = addDependency(state, bufferModule.name, 'process');
             path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('Buffer'), t.conditionalExpression(
-                t.memberExpression(bufferModule, t.identifier('__useDefault')),
-                t.memberExpression(bufferModule, t.identifier('default')),
-                bufferModule
-              ))
+              t.variableDeclarator(t.identifier('Buffer'), requireSub(dep))
             ]));
           }
 
           /*
-           * Create global, module, exports
+           * Construct the full body wrapper
            */
+          let dewBodyWrapper = [];
+
+          state.deps.forEach(dep => {
+            dewBodyWrapper.push(
+              t.importDeclaration([
+                t.importSpecifier(dep.exports, exportsIdentifier),
+                t.importSpecifier(dep.execute, executeIdentifier)
+              ], dep.literal)
+            );
+          });
+
+          dewBodyWrapper.push(exportExports);
+
+          if (state.usesModule)
+            dewBodyWrapper.push(moduleDeclarator);
+
           if (state.usesGlobal)
-            path.unshiftContainer('body', [
+            dewBodyWrapper.push(
               t.variableDeclaration('var', [t.variableDeclarator(state.globalIdentifier,
                 t.conditionalExpression(ifSelfPredicate, selfIdentifier, t.identifier('global')))
               ])
-            ]);
+            );
 
-          let exportsModuleDeclarators = [
-            t.variableDeclarator(t.identifier('exports'), t.objectExpression([])),
-            t.variableDeclarator(t.identifier('module'), t.objectExpression([
-              t.objectProperty(t.identifier('exports'), t.identifier('exports'))
-            ]))
-          ];
+          dewBodyWrapper.push(
+            t.exportNamedDeclaration(
+              t.variableDeclaration('var', [
+                t.variableDeclarator(
+                  executeIdentifier,
+                  t.functionExpression(null, [], t.blockStatement([
+                    t.expressionStatement(
+                      t.assignmentExpression('=',
+                        executeIdentifier,
+                        t.nullLiteral()
+                      )
+                    ),
+                    ...path.node.body
+                  ]))
+                )
+              ]),
+              []
+            )
+          );
 
-          let moduleIdentifier = state.redefinesModule ? path.scope.generateUidIdentifier('module') : t.identifier('module');
-          if (state.redefinesModule)
-            exportsModuleDeclarators.push(t.variableDeclarator(moduleIdentifier, t.identifier('module')));
-
-          path.unshiftContainer('body', t.variableDeclaration('var', exportsModuleDeclarators));
-
-          /*
-           * Add imports
-           */
-          let importStatements = [];
-          state.deps.forEach(dep => {
-            importStatements.push(t.importDeclaration([t.importNamespaceSpecifier(dep.depIdentifier)], dep.depLiteral));
-          });
-          path.unshiftContainer('body', importStatements);
-
-          /*
-           * Add default export (with __useDefault)
-           */
-          path.pushContainer('body', [
-            exportUseDefault,
-            t.exportDefaultDeclaration(t.memberExpression(moduleIdentifier, t.identifier('exports')))
-          ]);
+          path.node.body = dewBodyWrapper;
         }
       },
 
@@ -142,18 +165,12 @@ module.exports = function ({ types: t, template: template }) {
           if (!t.isStringLiteral(path.node.arguments[0]))
             throw new Error('Dynamic require expressions such as `require(sourceVar)` are not supported by this transform.');
 
-          let dep = {
-            depLiteral: path.node.arguments[0],
-            depIdentifier: path.scope.getProgramParent().generateUidIdentifier(path.node.arguments[0].value)
-          };
+          let dep = addDependency(state,
+            path.scope.getProgramParent().generateUidIdentifier(path.node.arguments[0].value).name,
+            path.node.arguments[0].value
+          );
 
-          state.deps.push(dep);
-
-          path.replaceWith(t.conditionalExpression(
-            t.memberExpression(dep.depIdentifier, t.identifier('__useDefault')),
-            t.memberExpression(dep.depIdentifier, t.identifier('default')),
-            dep.depIdentifier
-          ));
+          path.replaceWith(requireSub(dep));
         }
       },
 
@@ -180,6 +197,7 @@ module.exports = function ({ types: t, template: template }) {
       /*
        * process / Buffer become imports
        * global renames to global alias
+       * detect usage of module
        */
       ReferencedIdentifier (path, state) {
         let identifierName = path.node.name;
@@ -210,6 +228,8 @@ module.exports = function ({ types: t, template: template }) {
           state.hasProcess = true;
         if (!state.hasBuffer && identifierName === 'Buffer' && !path.scope.hasBinding('Buffer'))
           state.hasBuffer = true;
+        if (!state.usesModule && identifierName === 'module' && !path.scope.hasBinding('module'))
+          state.usesModule = true;
 
         if (identifierName === 'global' && !path.scope.hasBinding('global')) {
           state.usesGlobal = true;
@@ -224,8 +244,6 @@ module.exports = function ({ types: t, template: template }) {
         if (state.functionDepth === 0) {
           if (path.node.id.name === 'self' || path.node.id.name === 'global' || path.node.id.name === 'GLOBAL')
             state.redefinesSelfOrGlobal = true;
-          else if (path.node.id.name === 'module')
-            state.redefinesModule = true;
         }
       },
 
@@ -234,7 +252,7 @@ module.exports = function ({ types: t, template: template }) {
        */
       ThisExpression (path, state) {
         if (state.functionDepth === 0)
-          path.replaceWith(t.identifier('exports'));
+          path.replaceWith(exportsIdentifier);
       },
 
       /*
@@ -251,15 +269,11 @@ module.exports = function ({ types: t, template: template }) {
           let identifierName = path.node.left.name;
 
           /*
-           * Catch "self", "global" or "module" redefinitions
+           * Catch "self" or "global" redefinitions
            */
           if (identifierName === 'self' || identifierName === 'global' || identifierName === 'GLOBAL') {
             if (!path.scope.hasBinding(identifierName))
               state.redefinesSelfOrGlobal = true;
-          }
-          else if (identifierName === 'module' && !path.scope.hasBinding('module')) {
-            state.redefinesModule = true;
-            return;
           }
 
           /*

@@ -1,11 +1,19 @@
-var exports = {},
-    module = {
-  exports: exports
+export var exports = {};
+var module = {
+  get exports() {
+    return exports;
+  },
+
+  set exports(_exports) {
+    exports = _exports;
+  }
+
 };
 
-var _global = typeof self !== "undefined" ? self : _global;
+var _global = typeof self !== "undefined" ? self : global;
 
-(function () {
+export var __esdew = function () {
+  __esdew = null;
   var self = 10;
 
   function p() {
@@ -13,7 +21,4 @@ var _global = typeof self !== "undefined" ? self : _global;
   }
 
   module.exports = p();
-})();
-
-export var __useDefault = true;
-export default module.exports;
+};

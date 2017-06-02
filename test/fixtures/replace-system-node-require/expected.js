@@ -1,8 +1,6 @@
-var exports = {},
-    module = {
-  exports: exports
+export var exports = {};
+export var __esdew = function () {
+  __esdew = null;
+  System._nodeRequire("foo");
+  SystemJS._nodeRequire("bar");
 };
-System._nodeRequire("foo");
-SystemJS._nodeRequire("bar");
-export var __useDefault = true;
-export default module.exports;
