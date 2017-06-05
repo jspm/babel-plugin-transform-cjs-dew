@@ -1,5 +1,5 @@
 module.exports = {
-  requireResolve (x) {
+  resolve (x) {
     if (x === './asdf.js')
       return '/resolved';
   }

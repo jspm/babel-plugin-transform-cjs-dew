@@ -1,5 +1,5 @@
 module.exports = {
-  requireResolve (name) {
+  resolve (name) {
     if (name.startsWith('./'))
       return '/base/' + name.substr(2);
     if (name.startsWith('../'))

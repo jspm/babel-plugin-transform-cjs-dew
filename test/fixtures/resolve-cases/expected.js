@@ -5,4 +5,5 @@ export var __esdew = function () {
   `/base/x`;
   `/base/x/${thing}`;
   '/x' + '/y';
+  x;
 };

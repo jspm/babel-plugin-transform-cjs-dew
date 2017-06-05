@@ -68,20 +68,9 @@ module.exports = function ({ types: t, template: template }) {
       if (dep.literal.value === depModule)
         return dep;
     }
-    // apply any map configuration
-    if (state.opts.map) {
-      let match;
-      for (let target in state.opts.map) {
-        if (!Object.hasOwnProperty.call(state.opts.map, target))
-          continue;
-        if (depModule.startsWith(target) &&
-            (depModule.length === target.length || depModule[target.length] === '/') &&
-            (!match || match.length < target.length))
-          match = target;
-      }
-      if (match)
-        depModule = state.opts.map[match] + depModule.substr(match.length);
-    }
+    // apply resolver
+    if (state.opts.resolve)
+      depModule = state.opts.resolve(depModule) || depModule;
     let dep = {
       literal: t.stringLiteral(depModule),
       exports: t.identifier(depName + 'Exports'),
@@ -223,9 +212,9 @@ module.exports = function ({ types: t, template: template }) {
           switch (name) {
             case 'resolve':
               if (t.isCallExpression(path.parent) && path.parent.callee === path.node &&
-                  path.parent.arguments.length === 1 && state.opts.requireResolve) {
+                  path.parent.arguments.length === 1 && state.opts.resolve) {
                 let resolveArgPath = path.parentPath.get('arguments.0');
-                path.parentPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.requireResolve));
+                path.parentPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.resolve));
               }
             break;
             case 'main':

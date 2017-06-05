@@ -18,14 +18,11 @@ require('babel-core').transform('<source>', {
       define: {
         'process.env.NODE_ENV': '"development"'
       },
-      map (path) {
-        if (path === 'process')
+      resolve (name, parent) {
+        if (name === 'process')
           return 'process-path';
-        if (path === './x')
+        if (name === './x')
           return './x.js';
-      },
-      requireResolve (name) {
-        return '/resolved'
       }
     }]
   ]

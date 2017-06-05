@@ -1,4 +1,4 @@
-import { exports as _xExports, __esdew as _xExecute } from './x';
+import { exports as _xExports, __esdew as _xExecute } from '/base/x';
 export var exports = {};
 var module = {
   get exports() {
