@@ -1,14 +1,4 @@
 export var exports = {};
-var module = {
-  get exports() {
-    return exports;
-  },
-
-  set exports(_exports) {
-    exports = _exports;
-  }
-
-};
 export var __demExec = function () {
   __demExec = null;
   /*!
@@ -27,7 +17,7 @@ export var __demExec = function () {
   (function (global, factory) {
     "use strict";
 
-    if (typeof module === "object" && typeof module.exports === "object") {
+    if (true && typeof exports === "object") {
       // For CommonJS and CommonJS-like environments where a proper `window`
       // is present, execute the factory and get jQuery.
       // For environments that do not have a `window` with a `document`
@@ -35,7 +25,7 @@ export var __demExec = function () {
       // This accentuates the need for the creation of a real `window`.
       // e.g. var jQuery = require("jquery")(window);
       // See ticket #14549 for more info.
-      module.exports = global.document ? factory(global, true) : function (w) {
+      exports = global.document ? factory(global, true) : function (w) {
         if (!w.document) {
           throw new Error("jQuery requires a window with a document");
         }

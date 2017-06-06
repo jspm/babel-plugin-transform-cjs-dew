@@ -4,4 +4,5 @@ export var __demExec = function () {
 
 
   var module;
+  module.exports = 'asdf';
 };

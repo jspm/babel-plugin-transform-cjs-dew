@@ -1,15 +1,5 @@
 import { exports as _xExports, __demExec as _xExecute } from 'x';
 export var exports = {};
-var module = {
-  get exports() {
-    return exports;
-  },
-
-  set exports(_exports) {
-    exports = _exports;
-  }
-
-};
 export var __demExec = function () {
   __demExec = null;
   for (let i = 0; i < {}.length; i++) {

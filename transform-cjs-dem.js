@@ -226,33 +226,6 @@ module.exports = function ({ types: t, template: template }) {
             break;
           }
         }
-        if (t.isIdentifier(path.node.object, { name: 'module' }) && !path.scope.hasBinding('module')) {
-          let name = path.node.computed ? path.node.property.value : path.node.property.name;
-          if (name)
-          switch (name) {
-            case 'id':
-            case 'filename':
-              if (state.opts.filename)
-                path.replaceWith(t.stringLiteral(state.opts.filename));
-            break;
-            case 'parent':
-              path.replaceWith(t.identifier('undefined'));
-            break;
-            case 'loaded':
-            break;
-            case 'children':
-              path.replaceWith(t.objectExpression([]));
-            break;
-            case 'paths':
-              path.replaceWith(t.objectExpression([]));
-            break;
-            // require alternative
-            case 'require':
-              if (t.isCallExpression(path.parent) && path.parent.callee === path.node)
-                path.parentPath.replaceWith(requireSub(addDependency(path, state, path.parent.arguments[0])));
-            break;
-          }
-        }
       },
 
       Scope: {
@@ -300,8 +273,86 @@ module.exports = function ({ types: t, template: template }) {
           state.hasProcess = true;
         if (!state.hasBuffer && identifierName === 'Buffer' && !path.scope.hasBinding('Buffer'))
           state.hasBuffer = true;
-        if (!state.usesModule && identifierName === 'module' && !path.scope.hasBinding('module'))
+        if (!state.usesModule && identifierName === 'module' && !path.scope.hasBinding('module')) {
+          let parentPath = path.parentPath;
+          let parentNode = path.parentPath.node;
+          if (t.isMemberExpression(parentNode) && parentNode.object === path.node) {
+            let name = parentNode.computed ? parentNode.property.value : parentNode.property.name;
+            if (name)
+            switch (name) {
+              case 'id':
+              case 'filename':
+                if (state.opts.filename)
+                  parentPath.replaceWith(t.stringLiteral(state.opts.filename));
+              break;
+              case 'parent':
+                parentPath.replaceWith(t.identifier('undefined'));
+              break;
+              case 'loaded':
+              break;
+              case 'children':
+                parentPath.replaceWith(t.objectExpression([]));
+              break;
+              case 'paths':
+                parentPath.replaceWith(t.objectExpression([]));
+              break;
+              // require alternative
+              case 'require':
+                if (t.isCallExpression(parentPath.parent) && parentPath.parent.callee === parentPath.node)
+                  parentPath.parentPath.replaceWith(requireSub(addDependency(parentPath, state, parentPath.parent.arguments[0])));
+              break;
+              case 'exports':
+                if (!path.scope.hasBinding('exports')) {
+                  parentPath.replaceWith(exportsIdentifier);
+                  break;
+                }
+              default:
+                // need module
+                state.usesModule = true;
+            }
+            return;
+          }
+          else if (t.isUnaryExpression(parentNode) && parentNode.operator === 'typeof') {
+            /*
+             * typeof module === 'object' / typeof require == 'object' => true (convenience simplification)
+             */
+            if (t.isBinaryExpression(parentPath.parentPath.node) && t.isStringLiteral(parentPath.parentPath.node.right, { value: 'object' })) {
+              switch (parentPath.parentPath.node.operator) {
+                case '==':
+                case '===':
+                  parentPath.parentPath.replaceWith(t.booleanLiteral(true));
+                  return;
+
+                case '!=':
+                case '!==':
+                  parentPath.parentPath.replaceWith(t.booleanLiteral(false));
+                  return;
+              }
+            }
+            /*
+             * typeof module === 'undefined' / typeof module == 'undefined' => true (convenience simplification)
+             */
+            if (t.isBinaryExpression(parentPath.parentPath.node) && t.isStringLiteral(parentPath.parentPath.node.right, { value: 'undefined' })) {
+              switch (parentPath.parentPath.node.operator) {
+                case '==':
+                case '===':
+                  parentPath.parentPath.replaceWith(t.booleanLiteral(false));
+                  return;
+
+                case '!=':
+                case '!==':
+                  parentPath.parentPath.replaceWith(t.booleanLiteral(true));
+                  return;
+              }
+            }
+            /*
+             * typeof module -> 'object'
+             */
+            path.replaceWith(t.stringLiteral('object'));
+            return;
+          }
           state.usesModule = true;
+        }
         if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename'))
           path.replaceWith(t.stringLiteral(state.opts.filename));
         if (identifierName === '__dirname' && state.opts.filename && !path.scope.hasBinding('__dirname')) {
