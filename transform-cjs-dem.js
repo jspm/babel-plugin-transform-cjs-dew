@@ -1,6 +1,6 @@
 module.exports = function ({ types: t, template: template }) {
   const exportsIdentifier = t.identifier('exports');
-  const executeIdentifier = t.identifier('__esdew');
+  const executeIdentifier = t.identifier('__demExec');
 
   const exportExports = t.exportNamedDeclaration(
       t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, t.objectExpression([]))]), []);
@@ -146,10 +146,10 @@ module.exports = function ({ types: t, template: template }) {
           /*
            * Construct the full body wrapper
            */
-          let dewBodyWrapper = [];
+          let demBodyWrapper = [];
 
           state.deps.forEach(dep => {
-            dewBodyWrapper.push(
+            demBodyWrapper.push(
               t.importDeclaration([
                 t.importSpecifier(dep.exports, exportsIdentifier),
                 t.importSpecifier(dep.execute, executeIdentifier)
@@ -157,19 +157,19 @@ module.exports = function ({ types: t, template: template }) {
             );
           });
 
-          dewBodyWrapper.push(exportExports);
+          demBodyWrapper.push(exportExports);
 
           if (state.usesModule)
-            dewBodyWrapper.push(moduleDeclarator);
+            demBodyWrapper.push(moduleDeclarator);
 
           if (state.usesGlobal)
-            dewBodyWrapper.push(
+            demBodyWrapper.push(
               t.variableDeclaration('var', [t.variableDeclarator(state.globalIdentifier,
                 t.conditionalExpression(ifSelfPredicate, selfIdentifier, t.identifier('global')))
               ])
             );
 
-          dewBodyWrapper.push(
+          demBodyWrapper.push(
             t.exportNamedDeclaration(
               t.variableDeclaration('var', [
                 t.variableDeclarator(
@@ -189,7 +189,7 @@ module.exports = function ({ types: t, template: template }) {
             )
           );
 
-          path.node.body = dewBodyWrapper;
+          path.node.body = demBodyWrapper;
         }
       },
 

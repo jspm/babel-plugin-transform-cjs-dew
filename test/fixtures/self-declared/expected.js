@@ -12,8 +12,8 @@ var module = {
 
 var _global = typeof self !== "undefined" ? self : global;
 
-export var __esdew = function () {
-  __esdew = null;
+export var __demExec = function () {
+  __demExec = null;
   var self = 10;
 
   function p() {

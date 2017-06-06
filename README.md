@@ -1,6 +1,6 @@
-# Babel CommonJS -> ESDEW Format
+# Babel CommonJS -> DEM Format
 
-ESDEW is an ES Deferred Execution Wrapper format that allows supporting CommonJS execution semantics
+DEM is an ES Deferred Execution Module format that allows supporting CommonJS execution semantics
 through an ES modules protocol.
 
 _Modules converted in this way can only import from other modules converted to this format._
@@ -13,7 +13,7 @@ require('babel-core').transform('<source>', {
     allowReturnOutsideFunction: true
   },
   plugins: [
-    ['transform-cjs-esm', {
+    ['transform-cjs-dem', {
       filename: 'custom-filename.js',
       define: {
         'process.env.NODE_ENV': '"development"'
@@ -32,7 +32,7 @@ require('babel-core').transform('<source>', {
 Output:
 
 ```js
-import { exports as _depExports, __esdew as _depExecute } from './dep.esdew.js';
+import { exports as _depExports, __demExec as _depExecute } from './dep.dem.js';
 export var exports = {};
 var module = {
   get exports () {
@@ -55,8 +55,8 @@ _execution wrapper_ is required:
 
 x.js
 ```js
-import { exports, __esdew } from './x.esdew.js';
-if (__esdew) __esdew();
+import { exports, __demExec } from './x.dem.js';
+if (__demExec) __demExec();
 export { exports as default };
 ```
 

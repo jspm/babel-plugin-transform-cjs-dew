@@ -1,5 +1,5 @@
-import { exports as _fooExports, __esdew as _fooExecute } from 'foo';
-import { exports as _processExports, __esdew as _processExecute } from 'process';
+import { exports as _fooExports, __demExec as _fooExecute } from 'foo';
+import { exports as _processExports, __demExec as _processExecute } from 'process';
 export var exports = {};
 var module = {
   get exports() {
@@ -11,8 +11,8 @@ var module = {
   }
 
 };
-export var __esdew = function () {
-  __esdew = null;
+export var __demExec = function () {
+  __demExec = null;
 
   var process = _processExecute && _processExecute() || _processExports;
 

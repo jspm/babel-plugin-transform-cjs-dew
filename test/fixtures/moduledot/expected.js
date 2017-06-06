@@ -1,4 +1,4 @@
-import { exports as _xExports, __esdew as _xExecute } from 'x';
+import { exports as _xExports, __demExec as _xExecute } from 'x';
 export var exports = {};
 var module = {
   get exports() {
@@ -10,8 +10,8 @@ var module = {
   }
 
 };
-export var __esdew = function () {
-  __esdew = null;
+export var __demExec = function () {
+  __demExec = null;
   for (let i = 0; i < {}.length; i++) {
     ({})[i].thing;
   }
