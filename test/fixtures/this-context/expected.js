@@ -1,6 +1,6 @@
 export var exports = {};
-export var __demExec = function () {
-  __demExec = null;
+export var __dewExec = function () {
+  __dewExec = null;
   exports.asdf = { obj: 'x' };
 
   (function (exports) {

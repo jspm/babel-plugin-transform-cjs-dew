@@ -1,14 +1,14 @@
 {
-  "name": "babel-plugin-transform-cjs-esm",
+  "name": "babel-plugin-transform-cjs-esdew",
   "version": "0.1.0",
   "description": "Converts CommonJS modules into ES modules",
   "repository": {
     "type": "git",
-    "url": "http://github.com/systemjs/babel-plugin-transform-cjs-esm.git"
+    "url": "http://github.com/systemjs/babel-plugin-transform-cjs-esdew.git"
   },
   "author": "guybedford",
   "license": "MIT",
-  "main": "transform-cjs-dem.js",
+  "main": "transform-cjs-esdew.js",
   "devDependencies": {
     "babel-core": "^6.24.1",
     "mocha": "^3.4.2"

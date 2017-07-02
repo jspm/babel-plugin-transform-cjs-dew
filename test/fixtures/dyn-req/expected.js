@@ -1,7 +1,7 @@
-import { exports as _xExports, __demExec as _xExecute } from '/base/x';
+import { exports as _xExports, __dewExec as _xExecute } from '/base/x';
 export var exports = {};
-export var __demExec = function () {
-  __demExec = null;
+export var __dewExec = function () {
+  __dewExec = null;
   exports = null;
   _xExecute && _xExecute() || _xExports;
 };

@@ -1,7 +1,6 @@
-# Babel CommonJS -> DEM Format
+# Babel CommonJS -> ES Deferred Execution Wrapper Format
 
-DEM is an ES Deferred Execution Module format that allows supporting CommonJS execution semantics
-through an ES modules protocol.
+This plugin implements a deferred execution wodule format that allows supporting CommonJS execution semantics through an ES modules protocol.
 
 _Modules converted in this way can only import from other modules converted to this format._
 
@@ -13,7 +12,7 @@ require('babel-core').transform('<source>', {
     allowReturnOutsideFunction: true
   },
   plugins: [
-    ['transform-cjs-dem', {
+    ['transform-cjs-esdew', {
       filename: 'custom-filename.js',
       define: {
         'process.env.NODE_ENV': '"development"'
@@ -32,7 +31,7 @@ require('babel-core').transform('<source>', {
 Output:
 
 ```js
-import { exports as _depExports, __demExec as _depExecute } from './dep.dem.js';
+import { exports as _depExports, __demExec as _depExecute } from './dep.esdew.js';
 export var exports = {};
 var module = {
   get exports () {
@@ -55,8 +54,8 @@ _execution wrapper_ is required:
 
 x.js
 ```js
-import { exports, __demExec } from './x.dem.js';
-if (__demExec) __demExec();
+import { exports, __dewExec } from './x.esdew.js';
+if (__dewExec) __dewExec();
 export { exports as default };
 ```
 

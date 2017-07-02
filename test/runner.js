@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const assert = require('assert');
 const transformFileSync = require('babel-core').transformFileSync;
-const plugin = require('../transform-cjs-dem.js');
+const plugin = require('../transform-cjs-esdew.js');
 
 describe('Transformations', () => {
   const fixturesDir = path.join(__dirname, 'fixtures');
