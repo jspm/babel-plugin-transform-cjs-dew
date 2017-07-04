@@ -104,7 +104,7 @@ module.exports = function ({ types: t, template: template }) {
     if (t.isLogicalExpression(parentNode)) {
       if (parentNode.operator === '&&') {
         if (t.isBooleanLiteral(parentNode.left) && !parentNode.left.value || t.isBooleanLiteral(parentNode.right) && !parentNode.right.value) {
-          path.parentPath.replaceWith(t.booleanLiteral(true));
+          path.parentPath.replaceWith(t.booleanLiteral(false));
           dce(path.parentPath);
         }
         if (t.isBooleanLiteral(parentNode.left) && parentNode.left.value && t.isBooleanLiteral(parentNode.right) && parentNode.right.value) {
@@ -166,6 +166,9 @@ module.exports = function ({ types: t, template: template }) {
                   };
               }
 
+              let defineSource = state.opts.define[defineName];
+              if (defineSource === defineName)
+                throw new Error('Defining into own name for ' + defineName + ' not permitted. Use quotes to define strings.');
               curDefineObj.defineSource = state.opts.define[defineName];
             });
 
@@ -200,10 +203,10 @@ module.exports = function ({ types: t, template: template }) {
           /*
            * Construct the full body wrapper
            */
-          let demBodyWrapper = [];
+          let dewBodyWrapper = [];
 
           state.deps.forEach(dep => {
-            demBodyWrapper.push(
+            dewBodyWrapper.push(
               t.importDeclaration([
                 t.importSpecifier(dep.exports, exportsIdentifier),
                 t.importSpecifier(dep.execute, executeIdentifier)
@@ -211,19 +214,19 @@ module.exports = function ({ types: t, template: template }) {
             );
           });
 
-          demBodyWrapper.push(exportExports);
+          dewBodyWrapper.push(exportExports);
 
           if (state.usesModule)
-            demBodyWrapper.push(moduleDeclarator);
+            dewBodyWrapper.push(moduleDeclarator);
 
           if (state.usesGlobal)
-            demBodyWrapper.push(
+            dewBodyWrapper.push(
               t.variableDeclaration('var', [t.variableDeclarator(state.globalIdentifier,
                 t.conditionalExpression(ifSelfPredicate, selfIdentifier, t.identifier('global')))
               ])
             );
 
-          demBodyWrapper.push(
+          dewBodyWrapper.push(
             t.exportNamedDeclaration(
               t.variableDeclaration('var', [
                 t.variableDeclarator(
@@ -243,7 +246,7 @@ module.exports = function ({ types: t, template: template }) {
             )
           );
 
-          path.node.body = demBodyWrapper;
+          path.node.body = dewBodyWrapper;
         }
       },
 
