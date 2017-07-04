@@ -2,8 +2,8 @@ export var exports = {};
 
 var _global = typeof self !== "undefined" ? self : global;
 
-export var __dewExec = function () {
-  __dewExec = null;
+export var __dew__ = function () {
+  __dew__ = null;
   var asdf;
   exports = 1;
   require = 2;

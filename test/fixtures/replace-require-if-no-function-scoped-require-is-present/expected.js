@@ -1,8 +1,8 @@
-import { exports as _fooExports, __dewExec as _fooExecute } from 'foo';
-import { exports as _barExports, __dewExec as _barExecute } from 'bar/';
+import { exports as _fooExports, __dew__ as _fooExecute } from 'foo';
+import { exports as _barExports, __dew__ as _barExecute } from 'bar/';
 export var exports = {};
-export var __dewExec = function () {
-  __dewExec = null;
+export var __dew__ = function () {
+  __dew__ = null;
 
 
   (function () {

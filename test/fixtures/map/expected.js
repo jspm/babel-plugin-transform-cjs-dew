@@ -1,9 +1,9 @@
-import { exports as _thingExports, __dewExec as _thingExecute } from 'https://site.com/thing';
-import { exports as _thingBExports, __dewExec as _thingBExecute } from 'https://site.com/thing/b';
-import { exports as _processExports, __dewExec as _processExecute } from 'process-custom.js';
+import { exports as _thingExports, __dew__ as _thingExecute } from 'https://site.com/thing';
+import { exports as _thingBExports, __dew__ as _thingBExecute } from 'https://site.com/thing/b';
+import { exports as _processExports, __dew__ as _processExecute } from 'process-custom.js';
 export var exports = {};
-export var __dewExec = function () {
-  __dewExec = null;
+export var __dew__ = function () {
+  __dew__ = null;
 
   var process = _processExecute && _processExecute() || _processExports;
 

@@ -9,8 +9,8 @@ var module = {
   }
 
 };
-export var __dewExec = function () {
-  __dewExec = null;
+export var __dew__ = function () {
+  __dew__ = null;
   delete {}['asdf'];
   ({})['.yay'] = function () {};
 

@@ -1,8 +1,8 @@
-import { exports as _fooExports, __dewExec as _fooExecute } from 'foo';
-import { exports as _processExports, __dewExec as _processExecute } from 'process';
+import { exports as _fooExports, __dew__ as _fooExecute } from 'foo';
+import { exports as _processExports, __dew__ as _processExecute } from 'process';
 export var exports = {};
-export var __dewExec = function () {
-  __dewExec = null;
+export var __dew__ = function () {
+  __dew__ = null;
 
   var process = _processExecute && _processExecute() || _processExports;
 

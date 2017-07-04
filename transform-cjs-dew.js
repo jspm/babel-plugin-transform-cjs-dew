@@ -1,6 +1,6 @@
 module.exports = function ({ types: t, template: template }) {
   const exportsIdentifier = t.identifier('exports');
-  const executeIdentifier = t.identifier('__dewExec');
+  const executeIdentifier = t.identifier('__dew__');
 
   const exportExports = t.exportNamedDeclaration(
       t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, t.objectExpression([]))]), []);

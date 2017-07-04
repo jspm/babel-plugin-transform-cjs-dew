@@ -1,7 +1,7 @@
-import { exports as _xExports, __dewExec as _xExecute } from 'x';
+import { exports as _xExports, __dew__ as _xExecute } from 'x';
 export var exports = {};
-export var __dewExec = function () {
-  __dewExec = null;
+export var __dew__ = function () {
+  __dew__ = null;
   for (let i = 0; i < {}.length; i++) {
     ({})[i].thing;
   }
