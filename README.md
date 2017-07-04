@@ -31,7 +31,7 @@ require('babel-core').transform('<source>', {
 Output:
 
 ```js
-import { exports as _depExports, __demExec as _depExecute } from './dep.dew.js';
+import { exports as _depExports, __dew__ as _depExecute } from './dep.dew.js';
 export var exports = {};
 var module = {
   get exports () {
@@ -41,11 +41,11 @@ var module = {
     exports = _exports;
   }
 };
-export var execute = function () {
-  execute = null;
+export var __dew__ = function () {
+  __dew__ = null;
   module.exports = function () {};
   exports.blah = 'hi';
-  var a = (depExecute && depExecute() || depExports).y;
+  var a = (_depExecute && _depExecute() || _depExports).y;
 };
 ```
 
@@ -54,8 +54,8 @@ _execution wrapper_ is required:
 
 x.js
 ```js
-import { exports, __dewExec } from './x.dew.js';
-if (__dewExec) __dewExec();
+import { exports, __dew__ } from './x.dew.js';
+if (__dew__) __dew__();
 export { exports as default };
 ```
 
