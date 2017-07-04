@@ -12,7 +12,7 @@ require('babel-core').transform('<source>', {
     allowReturnOutsideFunction: true
   },
   plugins: [
-    ['transform-cjs-esdew', {
+    ['transform-cjs-dew', {
       filename: 'custom-filename.js',
       define: {
         'process.env.NODE_ENV': '"development"'
@@ -31,7 +31,7 @@ require('babel-core').transform('<source>', {
 Output:
 
 ```js
-import { exports as _depExports, __demExec as _depExecute } from './dep.esdew.js';
+import { exports as _depExports, __demExec as _depExecute } from './dep.dew.js';
 export var exports = {};
 var module = {
   get exports () {
@@ -54,7 +54,7 @@ _execution wrapper_ is required:
 
 x.js
 ```js
-import { exports, __dewExec } from './x.esdew.js';
+import { exports, __dewExec } from './x.dew.js';
 if (__dewExec) __dewExec();
 export { exports as default };
 ```

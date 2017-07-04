@@ -261,7 +261,8 @@ module.exports = function ({ types: t, template: template }) {
               definePath = definePath.parentPath;
               definedIdentifier = definedIdentifier.defineProperty;
             }
-            definePath = definePath.parentPath;
+            if (definePath)
+              definePath = definePath.parentPath;
           }
           if (definePath) {
             definePath.replaceWithSourceString(definedIdentifier.defineSource);
