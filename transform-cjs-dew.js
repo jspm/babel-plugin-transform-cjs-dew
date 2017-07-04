@@ -125,16 +125,16 @@ module.exports = function ({ types: t, template: template }) {
       let alternate = path.parentPath.get('alternate');
 
       if (parentNode.test.value) {
-        if (alternate)
+        if (alternate.node)
           alternate.remove();
         path.parentPath.replaceWith(consequent);
       }
       else {
         consequent.remove();
-        if (alternate)
+        if (alternate.node)
           path.parentPath.replaceWith(alternate);
         else
-          path.parentPath.replaceWith(t.emptyStatement());
+          path.parentPath.remove();
       }
     }
   }
