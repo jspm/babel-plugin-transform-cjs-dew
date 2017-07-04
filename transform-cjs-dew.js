@@ -27,6 +27,8 @@ module.exports = function ({ types: t, template: template }) {
     ]))
   ]);
 
+  const cjsScopeVars = ['require', 'exports', 'module', '__filename', '__dirname'];
+
   // given a string literal expression
   // partially resolve the leading part if a string literal
   function partialResolve (expr, resolve) {
@@ -419,7 +421,7 @@ module.exports = function ({ types: t, template: template }) {
            * Strict conversion
            * p = 5; where p is unbound -> p added to top scope
            */
-          if (!state.isStrict && !path.scope.hasBinding(identifierName))
+          if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1)
             path.scope.getProgramParent().push({ id: path.node.left });
 
           /*
