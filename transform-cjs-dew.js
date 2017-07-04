@@ -121,15 +121,20 @@ module.exports = function ({ types: t, template: template }) {
     }
     // if we have a direct boolean in an IfStatement, remove the falsy branch
     else if (t.isIfStatement(parentNode) && path.node === parentNode.test && t.isBooleanLiteral(parentNode.test)) {
+      let consequent = path.parentPath.get('consequent');
+      let alternate = path.parentPath.get('alternate');
+
       if (parentNode.test.value) {
-        let alternate = path.parentPath.get('alternate');
         if (alternate)
           alternate.remove();
+        path.parentPath.replaceWith(consequent);
       }
       else {
-        let consequent = path.parentPath.get('consequent');
-        if (consequent)
-          consequent.replaceWith(t.emptyStatement());
+        consequent.remove();
+        if (alternate)
+          path.parentPath.replaceWith(alternate);
+        else
+          path.parentPath.replaceWith(t.emptyStatement());
       }
     }
   }
