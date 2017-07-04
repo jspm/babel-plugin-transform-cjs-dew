@@ -179,7 +179,6 @@ module.exports = function ({ types: t, template: template }) {
 
           state.deps = [];
           state.functionDepth = 0;
-          state.curAssignment = undefined;
           state.globalIdentifier = path.scope.generateUidIdentifier('global');
           state.usesGlobal = false;
           state.redefinesSelfOrGlobal = false;
@@ -427,12 +426,6 @@ module.exports = function ({ types: t, template: template }) {
        * Unbound global handling
        */
       AssignmentExpression (path, state) {
-        // avoid circular transform
-        if (path.node === state.curAssignment) {
-          state.curAssignment = undefined;
-          return;
-        }
-
         if (t.isIdentifier(path.node.left)) {
           let identifierName = path.node.left.name;
 
@@ -448,17 +441,9 @@ module.exports = function ({ types: t, template: template }) {
            * Strict conversion
            * p = 5; where p is unbound -> p added to top scope
            */
-          if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1)
-            path.scope.getProgramParent().push({ id: path.node.left });
-
-          /*
-           * Detect top-level global binding assignments
-           * p = 5; -> global.p = p = 5;
-           */
-          let binding = path.scope.getBinding(identifierName);
-          if (binding && !binding.scope.parent) {
-            state.curAssignment = path.node;
+          if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1) {
             state.usesGlobal = true;
+            path.scope.getProgramParent().push({ id: path.node.left });
             path.replaceWith(t.assignmentExpression('=', t.memberExpression(state.globalIdentifier, path.node.left), path.node));
           }
         }
