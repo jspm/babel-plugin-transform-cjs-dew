@@ -82,6 +82,58 @@ module.exports = function ({ types: t, template: template }) {
     return dep;
   }
 
+  function dce (path) {
+    let parentNode = path.parentPath.node;
+
+    // inline direct string equalities as "true" or "false"
+    if (t.isBinaryExpression(parentNode)) {
+      if (parentNode.operator === '===' || parentNode.operator === '==') {
+        if (t.isStringLiteral(parentNode.left) && t.isStringLiteral(parentNode.right)) {
+          path.parentPath.replaceWith(t.booleanLiteral(parentNode.left.value === parentNode.right.value));
+          dce(path.parentPath);
+        }
+      }
+      if (parentNode.operator === '!==' || parentNode.operator === '!=') {
+        if (t.isStringLiteral(parentNode.left) && t.isStringLiteral(parentNode.right)) {
+          path.parentPath.replaceWith(t.booleanLiteral(parentNode.left.value !== parentNode.right.value));
+          dce(path.parentPath);
+        }
+      }
+    }
+    // bubble up "true" and "false" through logical expressions where possible
+    if (t.isLogicalExpression(parentNode)) {
+      if (parentNode.operator === '&&') {
+        if (t.isBooleanLiteral(parentNode.left) && !parentNode.left.value || t.isBooleanLiteral(parentNode.right) && !parentNode.right.value) {
+          path.parentPath.replaceWith(t.booleanLiteral(true));
+          dce(path.parentPath);
+        }
+        if (t.isBooleanLiteral(parentNode.left) && parentNode.left.value && t.isBooleanLiteral(parentNode.right) && parentNode.right.value) {
+          path.parentPath.replaceWith(t.booleanLiteral(true));
+          dce(path.parentPath);
+        }
+      }
+      else if (parentNode.operator === '||') {
+        if (t.isBooleanLiteral(parentNode.left) && parentNode.left.value || t.isBooleanLiteral(parentNode.right) && parentNode.right.value) {
+          path.parentPath.replaceWith(t.booleanLiteral(true));
+          dce(path.parentPath);
+        }
+      }
+    }
+    // if we have a direct boolean in an IfStatement, remove the falsy branch
+    else if (t.isIfStatement(parentNode) && path.node === parentNode.test && t.isBooleanLiteral(parentNode.test)) {
+      if (parentNode.test.value) {
+        let alternate = path.parentPath.get('alternate');
+        if (alternate)
+          alternate.remove();
+      }
+      else {
+        let consequent = path.parentPath.get('consequent');
+        if (consequent)
+          consequent.replaceWith(t.emptyStatement());
+      }
+    }
+  }
+
   return {
     visitor: {
       Program: {
@@ -268,6 +320,7 @@ module.exports = function ({ types: t, template: template }) {
           }
           if (definePath) {
             definePath.replaceWithSourceString(definedIdentifier.defineSource);
+            dce(definePath);
             return;
           }
         }
@@ -316,42 +369,8 @@ module.exports = function ({ types: t, template: template }) {
             return;
           }
           else if (t.isUnaryExpression(parentNode) && parentNode.operator === 'typeof') {
-            /*
-             * typeof module === 'object' / typeof require == 'object' => true (convenience simplification)
-             */
-            if (t.isBinaryExpression(parentPath.parentPath.node) && t.isStringLiteral(parentPath.parentPath.node.right, { value: 'object' })) {
-              switch (parentPath.parentPath.node.operator) {
-                case '==':
-                case '===':
-                  parentPath.parentPath.replaceWith(t.booleanLiteral(true));
-                  return;
-
-                case '!=':
-                case '!==':
-                  parentPath.parentPath.replaceWith(t.booleanLiteral(false));
-                  return;
-              }
-            }
-            /*
-             * typeof module === 'undefined' / typeof module == 'undefined' => true (convenience simplification)
-             */
-            if (t.isBinaryExpression(parentPath.parentPath.node) && t.isStringLiteral(parentPath.parentPath.node.right, { value: 'undefined' })) {
-              switch (parentPath.parentPath.node.operator) {
-                case '==':
-                case '===':
-                  parentPath.parentPath.replaceWith(t.booleanLiteral(false));
-                  return;
-
-                case '!=':
-                case '!==':
-                  parentPath.parentPath.replaceWith(t.booleanLiteral(true));
-                  return;
-              }
-            }
-            /*
-             * typeof module -> 'object'
-             */
-            path.replaceWith(t.stringLiteral('object'));
+            parentPath.replaceWith(t.stringLiteral('object'));
+            dce(parentPath);
             return;
           }
           state.usesModule = true;
@@ -440,42 +459,8 @@ module.exports = function ({ types: t, template: template }) {
 
       UnaryExpression (path) {
         if (path.node.operator === 'typeof' && path.node.argument.name === 'require' && !path.scope.hasBinding('require')) {
-          /*
-           * typeof require === 'function' / typeof require == 'function' => true (convenience simplification)
-           */
-          if (t.isBinaryExpression(path.parentPath.node) && t.isStringLiteral(path.parentPath.node.right, { value: 'function' })) {
-            switch (path.parentPath.node.operator) {
-              case '==':
-              case '===':
-                path.parentPath.replaceWith(t.booleanLiteral(true));
-                return;
-
-              case '!=':
-              case '!==':
-                path.parentPath.replaceWith(t.booleanLiteral(false));
-                return;
-            }
-          }
-          /*
-           * typeof require === 'undefined' / typeof require == 'undefined' => true (convenience simplification)
-           */
-          if (t.isBinaryExpression(path.parentPath.node) && t.isStringLiteral(path.parentPath.node.right, { value: 'undefined' })) {
-            switch (path.parentPath.node.operator) {
-              case '==':
-              case '===':
-                path.parentPath.replaceWith(t.booleanLiteral(false));
-                return;
-
-              case '!=':
-              case '!==':
-                path.parentPath.replaceWith(t.booleanLiteral(true));
-                return;
-            }
-          }
-          /*
-           * typeof require -> 'function'
-           */
           path.replaceWith(t.stringLiteral('function'));
+          dce(path);
         }
       }
     }
