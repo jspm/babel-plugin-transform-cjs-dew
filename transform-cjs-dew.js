@@ -198,7 +198,7 @@ module.exports = function ({ types: t, template: template }) {
           }
 
           if (state.hasBuffer) {
-            let dep = addDependency(path, state, t.stringLiteral('Buffer'));
+            let dep = addDependency(path, state, t.stringLiteral('buffer'));
             path.unshiftContainer('body', t.variableDeclaration('var', [
               t.variableDeclarator(t.identifier('Buffer'), requireSub(dep))
             ]));
