@@ -381,8 +381,9 @@ module.exports = function ({ types: t, template: template }) {
           state.usesModule = true;
         }
 
-        if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename'))
+        if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename')) {
           path.replaceWith(t.stringLiteral(state.opts.filename));
+        }
         else if (identifierName === '__dirname' && state.opts.filename && !path.scope.hasBinding('__dirname')) {
           let parts = state.opts.filename.split('/');
           parts.pop();
@@ -436,17 +437,10 @@ module.exports = function ({ types: t, template: template }) {
           }
 
           /*
-           * Exports reassignment -> turned into global var
-           */
-          if (identifierName === 'exports' && !path.node.left.own && !path.scope.hasBinding(identifierName)) {
-            path.scope.push({ id: path.node.left });
-          }
-
-          /*
            * Strict conversion (should really be extended to all assignment forms: destructuring, update expression, iterator assignment)
            * p = 5; where p is unbound -> p added to top scope
            */
-          else if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1) {
+          if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1) {
             state.usesGlobal = true;
             // the (heuristic) assumption here is that blind non-strict global assignments have only
             // the usage of typeof x before that global assignment is made, eg a good case:
