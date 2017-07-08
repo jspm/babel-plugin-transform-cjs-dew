@@ -173,6 +173,7 @@ module.exports = function ({ types: t, template: template }) {
 
           state.deps = [];
           state.functionDepth = 0;
+          state.strictGlobalTypeofPaths = {};
           state.globalIdentifier = path.scope.generateUidIdentifier('global');
           state.usesGlobal = false;
           state.redefinesSelfOrGlobal = false;
@@ -376,22 +377,17 @@ module.exports = function ({ types: t, template: template }) {
             }
             return;
           }
-          else if (t.isUnaryExpression(parentNode) && parentNode.operator === 'typeof') {
-            parentPath.replaceWith(t.stringLiteral('object'));
-            dce(parentPath);
-            return;
-          }
           state.usesModule = true;
         }
+
         if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename'))
           path.replaceWith(t.stringLiteral(state.opts.filename));
-        if (identifierName === '__dirname' && state.opts.filename && !path.scope.hasBinding('__dirname')) {
+        else if (identifierName === '__dirname' && state.opts.filename && !path.scope.hasBinding('__dirname')) {
           let parts = state.opts.filename.split('/');
           parts.pop();
           path.replaceWith(t.stringLiteral(parts.join('/')));
         }
-
-        if (identifierName === 'global' && !path.scope.hasBinding('global')) {
+        else if (identifierName === 'global' && !path.scope.hasBinding('global')) {
           state.usesGlobal = true;
           path.replaceWith(state.globalIdentifier);
         }
@@ -446,22 +442,43 @@ module.exports = function ({ types: t, template: template }) {
           }
 
           /*
-           * Strict conversion
+           * Strict conversion (should really be extended to all assignment forms: destructuring, update expression, iterator assignment)
            * p = 5; where p is unbound -> p added to top scope
            */
           else if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1) {
             state.usesGlobal = true;
+            // the (heuristic) assumption here is that blind non-strict global assignments have only
+            // the usage of typeof x before that global assignment is made, eg a good case:
+            //   `typeof x === 'undefined' && x = 5` -> `typeof _global.x === 'undefined' && x = _global.x = 5`
+            // while we have for example a bad case:
+            //   `x && x = 10 && typeof x === 'undefined'` -> `x && x = _global.x = 10 && typeof x === 'undefined'`
+            let strictGlobalTypeofPaths = state.strictGlobalTypeofPaths[identifierName];
+            if (strictGlobalTypeofPaths)
+              strictGlobalTypeofPaths.forEach(path => {
+                path.replaceWith(t.memberExpression(state.globalIdentifier, path.node));
+              });
             path.scope.getProgramParent().push({ id: path.node.left });
             path.replaceWith(t.assignmentExpression('=', t.memberExpression(state.globalIdentifier, path.node.left), path.node));
           }
         }
       },
 
-
-      UnaryExpression (path) {
-        if (path.node.operator === 'typeof' && path.node.argument.name === 'require' && !path.scope.hasBinding('require')) {
-          path.replaceWith(t.stringLiteral('function'));
-          dce(path);
+      UnaryExpression (path, state) {
+        if (path.node.operator === 'typeof' && t.isIdentifier(path.node.argument)) {
+          let identifierName = path.node.argument.name;
+          if (identifierName === 'require' && !path.scope.hasBinding(identifierName)) {
+            path.replaceWith(t.stringLiteral('function'));
+            dce(path);
+          }
+          else if (identifierName === 'module' && !path.scope.hasBinding(identifierName)) {
+            path.replaceWith(t.stringLiteral('object'))
+            dce(path);
+          }
+          else if (!state.isStrict && !path.scope.hasBinding(identifierName)) {
+            // note all typeof x to do conversion into typeof _global.x if a strict assignment later
+            (state.strictGlobalTypeofPaths[identifierName] = state.strictGlobalTypeofPaths[identifierName] || [])
+            .push(path.get('argument'));
+          }
         }
       }
     }
