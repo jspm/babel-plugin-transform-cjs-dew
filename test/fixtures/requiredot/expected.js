@@ -1,13 +1,6 @@
 export var exports = {};
 var module = {
-  get exports() {
-    return exports;
-  },
-
-  set exports(_exports) {
-    exports = _exports;
-  }
-
+  exports: exports
 };
 export var __dew__ = function () {
   __dew__ = null;
@@ -20,4 +13,5 @@ export var __dew__ = function () {
 
   var path = '/resolved';
   fs.readFile(path);
+  exports = module.exports;
 };

@@ -4,7 +4,10 @@ var module = {
 };
 export var __dew__ = function () {
   __dew__ = null;
-  var exports = 'asdf';
-  module.exports = 'asdf';
+  Object.defineProperty(module, 'exports', {
+    get() {
+      return 'yo';
+    }
+  });
   exports = module.exports;
 };

@@ -4,7 +4,7 @@ var _global = typeof self !== "undefined" ? self : global;
 
 export var __dew__ = function () {
   __dew__ = null;
-  var asdf;
+  var exports, asdf;
   exports = 1;
   require = 2;
   module = 3;

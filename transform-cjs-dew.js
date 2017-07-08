@@ -1,5 +1,6 @@
 module.exports = function ({ types: t, template: template }) {
   const exportsIdentifier = t.identifier('exports');
+  const moduleIdentifier = t.identifier('module');
   const executeIdentifier = t.identifier('__dew__');
 
   const exportExports = t.exportNamedDeclaration(
@@ -15,19 +16,12 @@ module.exports = function ({ types: t, template: template }) {
     );
   };
   const moduleDeclarator = t.variableDeclaration('var', [
-    t.variableDeclarator(t.identifier('module'), t.objectExpression([
-      t.objectMethod('get', exportsIdentifier, [], t.blockStatement([
-        t.returnStatement(exportsIdentifier)
-      ])),
-      t.objectMethod('set', exportsIdentifier, [t.identifier('_exports')], t.blockStatement([
-        t.expressionStatement(
-          t.assignmentExpression('=', exportsIdentifier, t.identifier('_exports'))
-        )
-      ]))
+    t.variableDeclarator(moduleIdentifier, t.objectExpression([
+      t.objectProperty(exportsIdentifier, exportsIdentifier)
     ]))
   ]);
 
-  const cjsScopeVars = ['require', 'exports', 'module', '__filename', '__dirname'];
+  const cjsScopeVars = ['require', 'module', '__filename', '__dirname'];
 
   // given a string literal expression
   // partially resolve the leading part if a string literal
@@ -220,8 +214,14 @@ module.exports = function ({ types: t, template: template }) {
 
           dewBodyWrapper.push(exportExports);
 
-          if (state.usesModule)
+          let possibleExportsAssignment = [];
+          if (state.usesModule) {
             dewBodyWrapper.push(moduleDeclarator);
+            possibleExportsAssignment.push(t.expressionStatement(t.assignmentExpression('=',
+              exportsIdentifier,
+              t.memberExpression(moduleIdentifier, exportsIdentifier)
+            )));
+          }
 
           if (state.usesGlobal)
             dewBodyWrapper.push(
@@ -242,7 +242,8 @@ module.exports = function ({ types: t, template: template }) {
                         t.nullLiteral()
                       )
                     ),
-                    ...path.node.body
+                    ...path.node.body,
+                    ...possibleExportsAssignment
                   ]))
                 )
               ]),
@@ -438,10 +439,17 @@ module.exports = function ({ types: t, template: template }) {
           }
 
           /*
+           * Exports reassignment -> turned into global var
+           */
+          if (identifierName === 'exports' && !path.scope.hasBinding(identifierName)) {
+            path.scope.push({ id: path.node.left });
+          }
+
+          /*
            * Strict conversion
            * p = 5; where p is unbound -> p added to top scope
            */
-          if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1) {
+          else if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1) {
             state.usesGlobal = true;
             path.scope.getProgramParent().push({ id: path.node.left });
             path.replaceWith(t.assignmentExpression('=', t.memberExpression(state.globalIdentifier, path.node.left), path.node));
