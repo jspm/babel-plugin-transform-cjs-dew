@@ -1,5 +1,6 @@
 module.exports = function ({ types: t, template: template }) {
   const exportsIdentifier = t.identifier('exports');
+  exportsIdentifier.own = true;
   const moduleIdentifier = t.identifier('module');
   const executeIdentifier = t.identifier('__dew__');
 
@@ -21,7 +22,7 @@ module.exports = function ({ types: t, template: template }) {
     ]))
   ]);
 
-  const cjsScopeVars = ['require', 'module', '__filename', '__dirname'];
+  const cjsScopeVars = ['require', 'module', 'exports', '__filename', '__dirname'];
 
   // given a string literal expression
   // partially resolve the leading part if a string literal
@@ -437,7 +438,7 @@ module.exports = function ({ types: t, template: template }) {
           /*
            * Exports reassignment -> turned into global var
            */
-          if (identifierName === 'exports' && !path.scope.hasBinding(identifierName)) {
+          if (identifierName === 'exports' && !path.node.left.own && !path.scope.hasBinding(identifierName)) {
             path.scope.push({ id: path.node.left });
           }
 
