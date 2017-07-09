@@ -149,11 +149,14 @@ module.exports = function ({ types: t, template: template }) {
           if (state.opts.define)
             Object.keys(state.opts.define).forEach(defineName => {
               let parts = defineName.split('.');
+              if (parts.length === 1) {
+                state.define[defineName] = state.opts.define[defineName];
+                return;
+              }
               let part = parts.shift();
               let curDefineObj = state.define[part] = {
                 defineName: undefined,
-                defineProperty: undefined,
-                defineSource: undefined
+                defineProperty: undefined
               };
               while (part = parts.shift()) {
                 curDefineObj.defineName = part;
@@ -161,15 +164,14 @@ module.exports = function ({ types: t, template: template }) {
                 if (parts.length)
                   curDefineObj = curDefineObj.defineProperty = {
                     defineName: undefined,
-                    defineProperty: undefined,
-                    defineSource: undefined
+                    defineProperty: undefined
                   };
               }
 
               let defineSource = state.opts.define[defineName];
               if (defineSource === defineName)
                 throw new Error('Defining into own name for ' + defineName + ' not permitted. Use quotes to define strings.');
-              curDefineObj.defineSource = state.opts.define[defineName];
+              curDefineObj.defineProperty = state.opts.define[defineName];
             });
 
           state.deps = [];
@@ -311,25 +313,24 @@ module.exports = function ({ types: t, template: template }) {
       ReferencedIdentifier (path, state) {
         let identifierName = path.node.name;
 
+        // either a member "x" about to be referenced more deeply
+        // ot a direct identifier "y"
         if (state.define.hasOwnProperty(identifierName)) {
           let definePath = path;
           let definedIdentifier = state.define[identifierName];
-          if (definedIdentifier.defineProperty) {
-            while (definedIdentifier.defineProperty) {
-              let parent = definePath.parentPath.node;
-              if (!t.isMemberExpression(parent) || parent.object !== definePath.node ||
-                  !t.isIdentifier(parent.property, { name: definedIdentifier.defineName })) {
-                definePath = undefined;
-                break;
-              }
-              definePath = definePath.parentPath;
-              definedIdentifier = definedIdentifier.defineProperty;
+          while (typeof definedIdentifier !== 'string') {
+            let parent = definePath.parentPath.node;
+            if (!t.isMemberExpression(parent) || parent.object !== definePath.node ||
+                !t.isIdentifier(parent.property, { name: definedIdentifier.defineName })) {
+              definePath = undefined;
+              break;
             }
-            if (definePath)
-              definePath = definePath.parentPath;
+            definePath = definePath.parentPath;
+            definedIdentifier = definedIdentifier.defineProperty;
           }
-          if (definePath) {
-            definePath.replaceWithSourceString(definedIdentifier.defineSource);
+          if (definePath &&
+              !(t.isAssignmentExpression(definePath.parentPath) && definePath.parentPath.node.left === definePath.node)) {
+            definePath.replaceWithSourceString(definedIdentifier);
             dce(definePath);
             return;
           }
