@@ -30,7 +30,7 @@ describe('Transformations', () => {
         const actual = transformFileSync(actualPath, options).code;
         const expected = fs.readFileSync(path.join(fixtureDir, 'expected.js')).toString();
 
-        assert.equal(actual.trim(), expected.trim());
+        assert.equal(actual.trim().replace(/\r\n|\n\r/g, '\n'), expected.trim().replace(/\r\n|\n\r/g, '\n'));
       }
     });
   });

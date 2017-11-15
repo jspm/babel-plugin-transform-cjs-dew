@@ -9,8 +9,10 @@ module.exports = function ({ types: t, template: template }) {
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
   const requireSub = dep => {
-    if (!dep)
+    if (dep === undefined)
       return t.nullLiteral();
+    if (dep === null)
+      return t.objectExpression([]);
     return t.logicalExpression('||',
       t.logicalExpression('&&', dep.execute, t.callExpression(dep.execute, [])),
       dep.exports
@@ -60,21 +62,27 @@ module.exports = function ({ types: t, template: template }) {
     }
 
     let depName = path.scope.getProgramParent().generateUidIdentifier(depModule).name;
+    let dep;
 
-    for (let dep of state.deps) {
-      if (dep.literal.value === depModule)
-        return dep;
-    }
     // apply resolver
-    if (state.opts.resolve)
-      depModule = state.opts.resolve(depModule) || depModule;
-    let dep = {
-      literal: t.stringLiteral(depModule),
-      exports: t.identifier(depName + 'Exports'),
-      execute: t.identifier(depName + 'Execute'),
-    };
-    state.deps.push(dep)
-    return dep;
+    const depResolved = state.opts.resolve ? state.opts.resolve(depModule) : depModule;
+    if (depResolved === null) {
+      return null;
+    }
+    else {
+      depModule = depResolved || depModule;
+      for (let dep of state.deps) {
+        if (dep.literal.value === depModule)
+          return dep;
+      }
+      const dep = {
+        literal: t.stringLiteral(depModule),
+        exports: t.identifier(depName + 'Exports'),
+        execute: t.identifier(depName + 'Execute'),
+      };
+      state.deps.push(dep)
+      return dep;
+    }
   }
 
   function dce (path) {
