@@ -340,7 +340,7 @@ module.exports = function ({ types: t, template: template }) {
           state.hasProcess = true;
         if (!state.hasBuffer && identifierName === 'Buffer' && !path.scope.hasBinding('Buffer'))
           state.hasBuffer = true;
-        if (!state.usesModule && identifierName === 'module' && !path.scope.hasBinding('module')) {
+        if (identifierName === 'module' && !path.scope.hasBinding('module')) {
           let parentPath = path.parentPath;
           let parentNode = path.parentPath.node;
           if (t.isMemberExpression(parentNode) && parentNode.object === path.node) {
