@@ -377,7 +377,7 @@ module.exports = function ({ types: t, template: template }) {
                   parentPath.parentPath.replaceWith(requireSub(addDependency(parentPath, state, parentPath.parent.arguments[0])));
               break;
               case 'exports':
-                if (!path.scope.hasBinding('exports')) {
+                if (!path.scope.hasBinding('exports') && !state.usesModule) {
                   parentPath.replaceWith(exportsIdentifier);
                   break;
                 }
