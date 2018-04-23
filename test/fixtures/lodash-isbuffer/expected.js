@@ -1,10 +1,11 @@
 import { exports as _rootExports, __dew__ as _rootExecute } from './_root';
 import { exports as _stubFalseExports, __dew__ as _stubFalseExecute } from './stubFalse';
-export var exports = {};
+var exports = {};
 var module = {
   exports: exports
 };
-export var __dew__ = function () {
+
+var __dew__ = function () {
   __dew__ = null;
   var root = _rootExecute && _rootExecute() || _rootExports,
       stubFalse = _stubFalseExecute && _stubFalseExecute() || _stubFalseExports;
@@ -46,3 +47,5 @@ export var __dew__ = function () {
   module.exports = isBuffer;
   exports = module.exports;
 };
+
+export { exports, __dew__ };

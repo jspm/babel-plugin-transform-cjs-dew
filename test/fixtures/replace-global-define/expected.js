@@ -1,5 +1,6 @@
-export var exports = {};
-export var __dew__ = function () {
+var exports = {};
+
+var __dew__ = function () {
   __dew__ = null;
   if (define) {
     if (typeof define === 'function' && define.amd) {
@@ -9,3 +10,5 @@ export var __dew__ = function () {
     }
   }
 };
+
+export { exports, __dew__ };

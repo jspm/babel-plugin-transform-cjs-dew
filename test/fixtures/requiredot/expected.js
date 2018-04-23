@@ -1,8 +1,9 @@
-export var exports = {};
+var exports = {};
 var module = {
   exports: exports
 };
-export var __dew__ = function () {
+
+var __dew__ = function () {
   __dew__ = null;
   delete {}['asdf'];
   ({})['.yay'] = function () {};
@@ -15,3 +16,5 @@ export var __dew__ = function () {
   fs.readFile(path);
   exports = module.exports;
 };
+
+export { exports, __dew__ };

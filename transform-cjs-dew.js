@@ -4,8 +4,12 @@ module.exports = function ({ types: t, template: template }) {
   const moduleIdentifier = t.identifier('module');
   const executeIdentifier = t.identifier('__dew__');
 
-  const exportExports = t.exportNamedDeclaration(
-      t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, t.objectExpression([]))]), []);
+  const exportDewAndExports = t.exportNamedDeclaration(null, [
+    t.exportSpecifier(exportsIdentifier, exportsIdentifier),
+    t.exportSpecifier(executeIdentifier, executeIdentifier)
+  ]);
+
+  const varExports = t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, t.objectExpression([]))]);
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
   const requireSub = dep => {
@@ -224,7 +228,7 @@ module.exports = function ({ types: t, template: template }) {
             );
           });
 
-          dewBodyWrapper.push(exportExports);
+          dewBodyWrapper.push(varExports);
 
           let possibleExportsAssignment = [];
           if (state.usesModule) {
@@ -243,25 +247,24 @@ module.exports = function ({ types: t, template: template }) {
             );
 
           dewBodyWrapper.push(
-            t.exportNamedDeclaration(
-              t.variableDeclaration('var', [
-                t.variableDeclarator(
-                  executeIdentifier,
-                  t.functionExpression(null, [], t.blockStatement([
-                    t.expressionStatement(
-                      t.assignmentExpression('=',
-                        executeIdentifier,
-                        t.nullLiteral()
-                      )
-                    ),
-                    ...path.node.body,
-                    ...possibleExportsAssignment
-                  ]))
-                )
-              ]),
-              []
-            )
+            t.variableDeclaration('var', [
+              t.variableDeclarator(
+                executeIdentifier,
+                t.functionExpression(null, [], t.blockStatement([
+                  t.expressionStatement(
+                    t.assignmentExpression('=',
+                      executeIdentifier,
+                      t.nullLiteral()
+                    )
+                  ),
+                  ...path.node.body,
+                  ...possibleExportsAssignment
+                ]))
+              )
+            ])
           );
+
+          dewBodyWrapper.push(exportDewAndExports);
 
           path.node.body = dewBodyWrapper;
         }

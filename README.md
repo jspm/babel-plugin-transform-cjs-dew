@@ -32,7 +32,7 @@ Output:
 
 ```js
 import { exports as _depExports, __dew__ as _depExecute } from './dep.dew.js';
-export var exports = {};
+var exports = {};
 var module = {
   get exports () {
     return exports;
@@ -41,12 +41,13 @@ var module = {
     exports = _exports;
   }
 };
-export var __dew__ = function () {
+var __dew__ = function () {
   __dew__ = null;
   module.exports = function () {};
   exports.blah = 'hi';
   var a = (_depExecute && _depExecute() || _depExports).y;
 };
+export { exports, __dew__ }
 ```
 
 To import a CommonJS module tree converted via the above into an ES module, the following

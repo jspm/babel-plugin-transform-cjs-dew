@@ -1,6 +1,7 @@
 import { exports as _xExports, __dew__ as _xExecute } from 'x';
-export var exports = {};
-export var __dew__ = function () {
+var exports = {};
+
+var __dew__ = function () {
   __dew__ = null;
   for (let i = 0; i < {}.length; i++) {
     ({})[i].thing;
@@ -15,3 +16,5 @@ export var __dew__ = function () {
 
   _xExecute && _xExecute() || _xExports;
 };
+
+export { exports, __dew__ };

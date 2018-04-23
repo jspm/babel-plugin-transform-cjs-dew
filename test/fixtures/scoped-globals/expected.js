@@ -1,8 +1,8 @@
-export var exports = {};
+var exports = {};
 
 var _global = typeof self !== "undefined" ? self : global;
 
-export var __dew__ = function () {
+var __dew__ = function () {
   __dew__ = null;
   var asdf;
   exports = 1;
@@ -12,3 +12,5 @@ export var __dew__ = function () {
   __dirname = 5;
   _global.asdf = asdf = 6;
 };
+
+export { exports, __dew__ };

@@ -1,5 +1,6 @@
-export var exports = {};
-export var __dew__ = function () {
+var exports = {};
+
+var __dew__ = function () {
   __dew__ = null;
   '/base/x';
   `/base/x`;
@@ -7,3 +8,5 @@ export var __dew__ = function () {
   '/x' + '/y';
   x;
 };
+
+export { exports, __dew__ };

@@ -1,5 +1,6 @@
-export var exports = {};
-export var __dew__ = function () {
+var exports = {};
+
+var __dew__ = function () {
   __dew__ = null;
   if (1) return 0 && undefined;
   if (2) return;
@@ -9,3 +10,5 @@ export var __dew__ = function () {
     return 5 && undefined;
   }
 };
+
+export { exports, __dew__ };

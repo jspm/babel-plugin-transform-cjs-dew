@@ -1,7 +1,8 @@
 import { exports as _fooExports, __dew__ as _fooExecute } from 'foo';
 import { exports as _barExports, __dew__ as _barExecute } from 'bar/';
-export var exports = {};
-export var __dew__ = function () {
+var exports = {};
+
+var __dew__ = function () {
   __dew__ = null;
 
 
@@ -17,3 +18,5 @@ export var __dew__ = function () {
     }
   })();
 };
+
+export { exports, __dew__ };

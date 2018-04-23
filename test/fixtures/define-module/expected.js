@@ -1,8 +1,9 @@
-export var exports = {};
+var exports = {};
 var module = {
   exports: exports
 };
-export var __dew__ = function () {
+
+var __dew__ = function () {
   __dew__ = null;
   Object.defineProperty(module, 'exports', {
     get() {
@@ -11,3 +12,5 @@ export var __dew__ = function () {
   });
   exports = module.exports;
 };
+
+export { exports, __dew__ };

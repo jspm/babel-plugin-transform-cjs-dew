@@ -1,5 +1,6 @@
-export var exports = {};
-export var __dew__ = function () {
+var exports = {};
+
+var __dew__ = function () {
   __dew__ = null;
   var define;
 
@@ -11,3 +12,5 @@ export var __dew__ = function () {
     }
   }
 };
+
+export { exports, __dew__ };
