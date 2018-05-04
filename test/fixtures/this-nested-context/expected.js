@@ -4,13 +4,14 @@ var _global = typeof self !== 'undefined' ? self : global;
 
 var __dew__ = function () {
   __dew__ = null;
-  exports.asdf = { obj: 'x' };
-
-  (function (exports) {
+  !function (exports) {
     (this || _global).another = 'y';
+    console.log((this || _global).another);
+
+    this['fn']();
 
     exports.p = 'q';
-  }).call(exports.asdf, exports);
+  }(exports);
 };
 
 export { exports, __dew__ };

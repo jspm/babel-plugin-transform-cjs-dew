@@ -66,6 +66,7 @@ As well as execution wrapping, the following code transformations are handled:
 * Any use of `global` or `GLOBAL` defines global in the module scope.
 * Top-level `this` is replaced with an `exports` reference.
 * Top-level `return` is adjusted to always ensure a falsy return value.
+* Internal `this` references that are not direct calls, fallback to _global.
 * Implicit globals of the form `globalName = ...` are rescoped for a simple strict module conversion.
 * Use of `Buffer` and `process` is transformed into an import of `buffer` or `process`. This module name can be customized by the `map` configuration option.
 

@@ -1,6 +1,8 @@
 import { exports as _msExports, __dew__ as _msExecute } from 'ms';
 var exports = {};
 
+var _global = typeof self !== 'undefined' ? self : global;
+
 var __dew__ = function () {
   __dew__ = null;
   /**
@@ -137,7 +139,7 @@ var __dew__ = function () {
   }
 
   function destroy() {
-    var index = exports.instances.indexOf(this);
+    var index = exports.instances.indexOf(this || _global);
     if (index !== -1) {
       exports.instances.splice(index, 1);
       return true;

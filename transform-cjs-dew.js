@@ -146,6 +146,8 @@ module.exports = function ({ types: t, template: template }) {
     }
   }
 
+  let thisOrGlobal;
+
   return {
     visitor: {
       Program: {
@@ -429,8 +431,20 @@ module.exports = function ({ types: t, template: template }) {
        * top-level this.X -> exports.X
        */
       ThisExpression (path, state) {
-        if (state.functionDepth === 0)
+        if (state.functionDepth === 0) {
           path.replaceWith(exportsIdentifier);
+        }
+        else if (!state.isStrict) {
+          state.usesGlobal = true;
+          const parentPath = path.parentPath;
+          const directCall = t.isMemberExpression(parentPath.node) && parentPath.node.object === path.node
+              && t.isCallExpression(parentPath.parentPath.node) && parentPath.parentPath.node.callee === parentPath.node;
+          if (!directCall) {
+            thisOrGlobal = thisOrGlobal || t.logicalExpression('||', t.thisExpression(), state.globalIdentifier);
+            if (parentPath.node !== thisOrGlobal)
+              path.replaceWith(thisOrGlobal);
+          }
+        }
       },
 
       /*

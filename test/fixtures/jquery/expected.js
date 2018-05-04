@@ -1,5 +1,7 @@
 var exports = {};
 
+var _global = typeof self !== "undefined" ? self : global;
+
 var __dew__ = function () {
   __dew__ = null;
   /*!
@@ -114,7 +116,7 @@ var __dew__ = function () {
       length: 0,
 
       toArray: function () {
-        return slice.call(this);
+        return slice.call(this || _global);
       },
 
       // Get the Nth element in the matched element set OR
@@ -122,11 +124,11 @@ var __dew__ = function () {
       get: function (num) {
         // Return all the elements in a clean array
         if (num == null) {
-          return slice.call(this);
+          return slice.call(this || _global);
         }
 
         // Return just the one element from the set
-        return num < 0 ? this[num + this.length] : this[num];
+        return num < 0 ? (this || _global)[num + (this || _global).length] : (this || _global)[num];
       },
 
       // Take an array of elements and push it onto the stack
@@ -136,7 +138,7 @@ var __dew__ = function () {
         var ret = jQuery.merge(this.constructor(), elems);
 
         // Add the old object onto the stack (as a reference)
-        ret.prevObject = this;
+        ret.prevObject = this || _global;
 
         // Return the newly-formed element set
         return ret;
@@ -144,17 +146,17 @@ var __dew__ = function () {
 
       // Execute a callback for every element in the matched set.
       each: function (callback) {
-        return jQuery.each(this, callback);
+        return jQuery.each(this || _global, callback);
       },
 
       map: function (callback) {
-        return this.pushStack(jQuery.map(this, function (elem, i) {
+        return this.pushStack(jQuery.map(this || _global, function (elem, i) {
           return callback.call(elem, i, elem);
         }));
       },
 
       slice: function () {
-        return this.pushStack(slice.apply(this, arguments));
+        return this.pushStack(slice.apply(this || _global, arguments));
       },
 
       first: function () {
@@ -166,13 +168,13 @@ var __dew__ = function () {
       },
 
       eq: function (i) {
-        var len = this.length,
+        var len = (this || _global).length,
             j = +i + (i < 0 ? len : 0);
-        return this.pushStack(j >= 0 && j < len ? [this[j]] : []);
+        return this.pushStack(j >= 0 && j < len ? [(this || _global)[j]] : []);
       },
 
       end: function () {
-        return this.prevObject || this.constructor();
+        return (this || _global).prevObject || this.constructor();
       },
 
       // For internal use only.
@@ -210,7 +212,7 @@ var __dew__ = function () {
 
       // Extend jQuery itself if only one argument is passed
       if (i === length) {
-        target = this;
+        target = this || _global;
         i--;
       }
 
@@ -474,7 +476,7 @@ var __dew__ = function () {
         // Simulated bind
         args = slice.call(arguments, 2);
         proxy = function () {
-          return fn.apply(context || this, args.concat(slice.call(arguments)));
+          return fn.apply(context || this || _global, args.concat(slice.call(arguments)));
         };
 
         // Set the guid of unique handler to the same of original handler, so it can be removed
