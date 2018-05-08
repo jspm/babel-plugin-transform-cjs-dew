@@ -148,10 +148,16 @@ module.exports = function ({ types: t, template: template }) {
 
   let thisOrGlobal;
 
+
   return {
     visitor: {
       Program: {
         enter (path, state) {
+          if (state.opts.dewDebugName)
+            state.dewDebugNameIdentifier = t.identifier(state.opts.dewDebugName);
+          else
+            state.dewDebugNameIdentifier = null;
+
           path.node.directives.forEach((d, index) => {
             if (d.value && d.value.value === 'use strict') {
               state.isStrict = true;
@@ -252,7 +258,7 @@ module.exports = function ({ types: t, template: template }) {
             t.variableDeclaration('var', [
               t.variableDeclarator(
                 executeIdentifier,
-                t.functionExpression(null, [], t.blockStatement([
+                t.functionExpression(state.dewDebugNameIdentifier, [], t.blockStatement([
                   t.expressionStatement(
                     t.assignmentExpression('=',
                       executeIdentifier,
