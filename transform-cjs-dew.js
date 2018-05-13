@@ -131,6 +131,8 @@ module.exports = function ({ types: t, template: template }) {
       let consequent = path.parentPath.get('consequent');
       let alternate = path.parentPath.get('alternate');
 
+      path.stop();
+
       if (parentNode.test.value) {
         if (alternate.node)
           alternate.remove();
@@ -144,10 +146,21 @@ module.exports = function ({ types: t, template: template }) {
           path.parentPath.remove();
       }
     }
+    // if we have a direct boolean in a ConditionalExpression, inline the truthy branch
+    else if (t.isConditionalExpression(parentNode) && path.node === parentNode.test && t.isBooleanLiteral(parentNode.test)) {
+      let consequent = path.parentPath.get('consequent');
+      let alternate = path.parentPath.get('alternate');
+
+      path.stop();
+
+      if (parentNode.test.value)
+        path.parentPath.replaceWith(consequent);
+      else
+        path.parentPath.replaceWith(alternate);
+    }
   }
 
   let thisOrGlobal;
-
 
   return {
     visitor: {
