@@ -166,6 +166,8 @@ module.exports = function ({ types: t, template: template }) {
     visitor: {
       Program: {
         enter (path, state) {
+          if (path.hub.file.shebang)
+            path.hub.file.shebang = '';
           if (state.opts.dewDebugName)
             state.dewDebugNameIdentifier = t.identifier(state.opts.dewDebugName);
           else
