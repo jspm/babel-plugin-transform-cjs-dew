@@ -12,15 +12,18 @@ module.exports = function ({ types: t, template: template }) {
   const varExports = t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, t.objectExpression([]))]);
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
-  const requireSub = dep => {
+  const requireSub = (dep, member) => {
     if (dep === undefined)
       return t.nullLiteral();
     if (dep === null)
       return t.objectExpression([]);
-    return t.logicalExpression('||',
+    const expression = t.logicalExpression('||',
       t.logicalExpression('&&', dep.execute, t.callExpression(dep.execute, [])),
       dep.exports
     );
+    if (!member)
+      return expression;
+    return t.memberExpression(expression, t.identifier(member));
   };
   const moduleDeclarator = t.variableDeclaration('var', [
     t.variableDeclarator(moduleIdentifier, t.objectExpression([
@@ -233,7 +236,7 @@ module.exports = function ({ types: t, template: template }) {
           if (state.hasBuffer) {
             let dep = addDependency(path, state, t.stringLiteral('buffer'));
             path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('Buffer'), requireSub(dep))
+              t.variableDeclarator(t.identifier('Buffer'), requireSub(dep, 'Buffer'))
             ]));
           }
 
