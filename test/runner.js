@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const assert = require('assert');
-const { transform, transformFileSync } = require('babel-core');
+const { transform, transformFileSync } = require('@babel/core');
 const plugin = require('../transform-cjs-dew.js');
 
 describe('Transformations', () => {
@@ -68,15 +68,13 @@ else
 var s = process.env.NODE_ENV === 'dev' ? require('p') : require('q');
 `;
 
-    assert.equal(transform(source, options).code, `import { exports as _xExports, __dew__ as _xExecute } from 'x';
-import { exports as _qExports, __dew__ as _qExecute } from 'q';
+    assert.equal(transform(source, options).code, `import { exports as _xExports, __dew__ as _xExecute } from "x";
+import { exports as _qExports, __dew__ as _qExecute } from "q";
 var exports = {};
 
 var __dew__ = function () {
   __dew__ = null;
-
   _xExecute && _xExecute() || _xExports;
-
 
   var s = _qExecute && _qExecute() || _qExports;
 };

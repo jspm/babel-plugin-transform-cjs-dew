@@ -1,5 +1,5 @@
-import { exports as _fooExports, __dew__ as _fooExecute } from 'foo';
-import { exports as _processExports, __dew__ as _processExecute } from 'process';
+import { exports as _fooExports, __dew__ as _fooExecute } from "foo";
+import { exports as _processExports, __dew__ as _processExecute } from "process";
 var exports = {};
 
 var __dew__ = function () {

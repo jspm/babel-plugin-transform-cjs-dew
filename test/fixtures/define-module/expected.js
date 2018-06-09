@@ -9,6 +9,7 @@ var __dew__ = function () {
     get() {
       return 'yo';
     }
+
   });
   exports = module.exports;
 };
