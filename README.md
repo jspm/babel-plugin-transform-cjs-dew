@@ -18,7 +18,7 @@ require('babel-core').transform('<source>', {
         'process.env.NODE_ENV': '"development"'
       },
       dewDebugName: 'execute',
-      resolve (name, parent) {
+      resolve (name, isRequireResolve) {
         if (name === 'process')
           return 'process-path';
         if (name === './x')

@@ -35,19 +35,19 @@ module.exports = function ({ types: t, template: template }) {
 
   // given a string literal expression
   // partially resolve the leading part if a string literal
-  function partialResolve (expr, resolve) {
+  function partialResolve (expr, resolve, isRequireResolve) {
     if (t.isStringLiteral(expr)) {
-      return t.stringLiteral(resolve(expr.value));
+      return t.stringLiteral(resolve(expr.value, isRequireResolve));
     }
     else if (t.isTemplateLiteral(expr)) {
-      let partialResolve = resolve(expr.quasis[0].value.cooked);
+      let partialResolve = resolve(expr.quasis[0].value.cooked, isRequireResolve);
       expr.quasis[0] = t.templateElement({
         raw: partialResolve
       });
       return expr;
     }
     else if (t.isBinaryExpression(expr) && expr.operator === '+' && t.isStringLiteral(expr.left)) {
-      expr.left.value = resolve(expr.left.value);
+      expr.left.value = resolve(expr.left.value, isRequireResolve);
     }
     return expr;
   }
@@ -72,7 +72,7 @@ module.exports = function ({ types: t, template: template }) {
     let dep;
 
     // apply resolver
-    const depResolved = state.opts.resolve ? state.opts.resolve(depModule) : depModule;
+    const depResolved = state.opts.resolve ? state.opts.resolve(depModule, false) : depModule;
     if (depResolved === null) {
       return null;
     }
@@ -317,7 +317,7 @@ module.exports = function ({ types: t, template: template }) {
               if (t.isCallExpression(path.parent) && path.parent.callee === path.node &&
                   path.parent.arguments.length === 1 && state.opts.resolve) {
                 let resolveArgPath = path.parentPath.get('arguments.0');
-                path.parentPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.resolve));
+                path.parentPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.resolve, true));
               }
             break;
             case 'main':
