@@ -11,7 +11,7 @@ var __dew__ = function () {
       _barExecute && _barExecute() || _barExports;
     }
 
-    if (true && eval('typeof require') != 'undefined') {
+    if (eval('typeof require') != 'undefined') {
       exports.cjs = true;
     }
   })();

@@ -113,17 +113,32 @@ module.exports = function ({ types: t, template: template }) {
     // bubble up "true" and "false" through logical expressions where possible
     if (t.isLogicalExpression(parentNode)) {
       if (parentNode.operator === '&&') {
-        if (t.isBooleanLiteral(parentNode.left) && !parentNode.left.value || t.isBooleanLiteral(parentNode.right) && !parentNode.right.value) {
-          path.parentPath.replaceWith(t.booleanLiteral(false));
-          dce(path.parentPath);
+        if (t.isBooleanLiteral(parentNode.left)) {
+          // true && X -> X
+          if (parentNode.left.value) {
+            path.parentPath.replaceWith(parentNode.right);
+            dce(path.parentPath);
+          }
+          // false && X -> false
+          else {
+            path.parentPath.replaceWith(t.booleanLiteral(false));
+            dce(path.parentPath);
+          }
         }
-        if (t.isBooleanLiteral(parentNode.left) && parentNode.left.value && t.isBooleanLiteral(parentNode.right) && parentNode.right.value) {
-          path.parentPath.replaceWith(t.booleanLiteral(true));
+        // null && X -> null
+        else if (t.isNullLiteral(parentNode.left)) {
+          path.parentPath.replaceWith(t.nullLiteral());
           dce(path.parentPath);
         }
       }
       else if (parentNode.operator === '||') {
-        if (t.isBooleanLiteral(parentNode.left) && parentNode.left.value || t.isBooleanLiteral(parentNode.right) && parentNode.right.value) {
+        // false || null || X -> X
+        if (t.isBooleanLiteral(parentNode.left) && !parentNode.left.value || t.isNullLiteral(parentNode.left)) {
+          path.parentPath.replaceWith(parentNode.right);
+          dce(path.parentPath);
+        }
+        // true || X -> true
+        else if (t.isBooleanLiteral(parentNode.left) && parentNode.left.value) {
           path.parentPath.replaceWith(t.booleanLiteral(true));
           dce(path.parentPath);
         }
@@ -161,6 +176,31 @@ module.exports = function ({ types: t, template: template }) {
       else
         path.parentPath.replaceWith(alternate);
     }
+  }
+
+  function mightBeReturned (path) {
+    if (!path.parentPath)
+      return false;
+    const parentNode = path.parentPath.node;
+    if (t.isBinaryExpression(parentNode)) {
+      if (parentNode.operator === '&&')
+        return parentNode.left !== path.node;
+      else if (parentNode.operator === '||')
+        return mightBeReturned(path.parentPath);
+    }
+    if (t.isCallExpression(parentNode))
+      return parentNode.callee !== path.node;
+    if (t.isConditionalExpression(parentNode)) {
+      if (parentNode.test === path.node)
+        return false;
+      return mightBeReturned(path.parentPath);
+    }
+    if (t.isSequenceExpression(parentNode))
+      return parentNode.expressions[parentNode.expressions.length - 1] === path.node;
+    if (t.isExpressionStatement(parentNode))
+      return false;
+    // anything else -> true
+    return true;
   }
 
   let thisOrGlobal;
@@ -219,6 +259,7 @@ module.exports = function ({ types: t, template: template }) {
           state.usesGlobal = false;
           state.redefinesSelfOrGlobal = false;
           state.usesModule = false;
+          state.usesDynamicRequire = false;
         },
         exit (path, state) {
           state.functionDepth = -1;
@@ -297,14 +338,6 @@ module.exports = function ({ types: t, template: template }) {
       },
 
       /*
-       * Require support
-       */
-      CallExpression (path, state) {
-        if (t.isIdentifier(path.node.callee, { name: 'require' }))
-          path.replaceWith(requireSub(addDependency(path, state, path.node.arguments[0])));
-      },
-
-      /*
        * Define plugin
        * Detect unsupported require lookups
        */
@@ -373,13 +406,29 @@ module.exports = function ({ types: t, template: template }) {
           }
         }
 
-        if (!state.hasProcess && identifierName === 'process' && !path.scope.hasBinding('process'))
-          state.hasProcess = true;
-        if (!state.hasBuffer && identifierName === 'Buffer' && !path.scope.hasBinding('Buffer'))
-          state.hasBuffer = true;
-        if (identifierName === 'module' && !path.scope.hasBinding('module')) {
+        /*
+         * Require support
+         */
+        if (identifierName === 'require' && !path.scope.hasBinding('require')) {
           let parentPath = path.parentPath;
-          let parentNode = path.parentPath.node;
+          if (t.isCallExpression(parentPath) && parentPath.node.callee === path.node) {
+            parentPath.replaceWith(requireSub(addDependency(path, state, parentPath.node.arguments[0])));
+          }
+          else {
+            // dynamic require -> null literal
+            path.replaceWith(t.nullLiteral());
+            dce(path);
+          }
+        }
+        else if (!state.hasProcess && identifierName === 'process' && !path.scope.hasBinding('process')) {
+          state.hasProcess = true;
+        }
+        else if (!state.hasBuffer && identifierName === 'Buffer' && !path.scope.hasBinding('Buffer')) {
+          state.hasBuffer = true;
+        }
+        else if (identifierName === 'module' && !path.scope.hasBinding('module')) {
+          let parentPath = path.parentPath;
+          let parentNode = parentPath.node;
           if (t.isMemberExpression(parentNode) && parentNode.object === path.node) {
             let name = parentNode.computed ? parentNode.property.value : parentNode.property.name;
             if (name)
@@ -404,6 +453,8 @@ module.exports = function ({ types: t, template: template }) {
               case 'require':
                 if (t.isCallExpression(parentPath.parent) && parentPath.parent.callee === parentPath.node)
                   parentPath.parentPath.replaceWith(requireSub(addDependency(parentPath, state, parentPath.parent.arguments[0])));
+                else
+                  state.usesDynamicRequire = true;
               break;
               case 'exports':
                 if (!path.scope.hasBinding('exports') && !state.usesModule) {

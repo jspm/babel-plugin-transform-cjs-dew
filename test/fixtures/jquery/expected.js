@@ -21,7 +21,7 @@ var __dew__ = function () {
   (function (global, factory) {
     "use strict";
 
-    if (true && typeof exports === "object") {
+    if (typeof exports === "object") {
       // For CommonJS and CommonJS-like environments where a proper `window`
       // is present, execute the factory and get jQuery.
       // For environments that do not have a `window` with a `document`
