@@ -333,7 +333,20 @@ module.exports = function ({ types: t, template: template }) {
 
           dewBodyWrapper.push(exportDewAndExports);
 
-          path.node.body = dewBodyWrapper;
+          for (const childPath of path.get('body')) {
+            childPath.remove();
+          }
+          
+          // path to ensure bindings are created for exports and __dew__
+          // tracking at https://github.com/babel/babel/issues/8358
+          for (let i = 0; i < dewBodyWrapper.length; i++) {
+            const [newPath] = path.pushContainer('body', dewBodyWrapper[i]);
+            if (t.isVariableDeclaration(newPath)) {
+              for (const decl of newPath.get('declarations')) {
+                path.scope.registerBinding(decl.node.id.name, decl.get('id'));
+              }
+            }
+          }
         }
       },
 
