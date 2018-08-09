@@ -3,8 +3,8 @@ var exports = {};
 var _global = typeof self !== "undefined" ? self : global;
 
 var __dew__ = function () {
-  __dew__ = null;
   var asdf;
+  __dew__ = null;
   exports = 1;
   require = 2;
   module = 3;

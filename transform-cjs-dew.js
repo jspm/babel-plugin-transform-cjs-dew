@@ -260,9 +260,20 @@ module.exports = function ({ types: t, template: template }) {
           state.redefinesSelfOrGlobal = false;
           state.usesModule = false;
           state.usesDynamicRequire = false;
+          state.moduleDotExports = [];
+          state.inserting = false;
         },
         exit (path, state) {
           state.functionDepth = -1;
+
+          /*
+           * Replace module.exports with exports if module not used
+           */
+          if (!state.usesModule) {
+            state.moduleDotExports.forEach(moduleDotExport => {
+              moduleDotExport.replaceWith(exportsIdentifier);
+            });
+          }
 
           /*
            * Add process and Buffer imports
@@ -310,8 +321,7 @@ module.exports = function ({ types: t, template: template }) {
             dewBodyWrapper.push(
               t.variableDeclaration('var', [t.variableDeclarator(state.globalIdentifier,
                 t.conditionalExpression(ifSelfPredicate, selfIdentifier, t.identifier('global')))
-              ])
-            );
+              ]));
 
           dewBodyWrapper.push(
             t.variableDeclaration('var', [
@@ -336,6 +346,8 @@ module.exports = function ({ types: t, template: template }) {
           for (const childPath of path.get('body')) {
             childPath.remove();
           }
+
+          state.inserting = true;
           
           // path to ensure bindings are created for exports and __dew__
           // tracking at https://github.com/babel/babel/issues/8358
@@ -355,6 +367,8 @@ module.exports = function ({ types: t, template: template }) {
        * Detect unsupported require lookups
        */
       MemberExpression (path, state) {
+        if (state.inserting)
+          return;
         if (t.isIdentifier(path.node.object, { name: 'require' }) && !path.scope.hasBinding('require')) {
           let name = path.node.computed ? path.node.property.value : path.node.property.name;
           if (name)
@@ -394,6 +408,8 @@ module.exports = function ({ types: t, template: template }) {
        * detect usage of module
        */
       ReferencedIdentifier (path, state) {
+        if (state.inserting)
+          return;
         let identifierName = path.node.name;
 
         // either a member "x" about to be referenced more deeply
@@ -470,8 +486,8 @@ module.exports = function ({ types: t, template: template }) {
                   state.usesDynamicRequire = true;
               break;
               case 'exports':
-                if (!path.scope.hasBinding('exports') && !state.usesModule) {
-                  parentPath.replaceWith(exportsIdentifier);
+                if (!path.scope.hasBinding('exports')) {
+                  state.moduleDotExports.push(parentPath);
                   break;
                 }
               default:
@@ -480,7 +496,12 @@ module.exports = function ({ types: t, template: template }) {
             }
             return;
           }
-          state.usesModule = true;
+          else if (t.isLogicalExpression(parentNode) && parentNode.left === path.node && parentNode.operator === '&&') {
+            path.replaceWith(t.booleanLiteral(true));
+          }
+          else {
+            state.usesModule = true;
+          }
         }
 
         if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename')) {
@@ -501,8 +522,13 @@ module.exports = function ({ types: t, template: template }) {
        * Top-level return must be falsy
        */
       ReturnStatement (path, state) {
-        if (state.functionDepth === 0 && path.node.argument)
+        if (state.inserting)
+          return;
+        if (state.functionDepth === 0 && path.node.argument) {
+          if (t.isLogicalExpression(path.node.argument) && t.isIdentifier(path.node.argument.right, { name: 'undefined' }))
+            return;
           path.get('argument').replaceWith(t.logicalExpression('&&', path.node.argument, t.identifier('undefined')));
+        }
       },
 
       /*
@@ -519,6 +545,8 @@ module.exports = function ({ types: t, template: template }) {
        * top-level this.X -> exports.X
        */
       ThisExpression (path, state) {
+        if (state.inserting)
+          return;
         if (state.functionDepth === 0) {
           path.replaceWith(exportsIdentifier);
         }
@@ -539,6 +567,8 @@ module.exports = function ({ types: t, template: template }) {
        * Unbound global handling
        */
       AssignmentExpression (path, state) {
+        if (state.inserting)
+          return;
         if (t.isIdentifier(path.node.left)) {
           let identifierName = path.node.left.name;
 
@@ -573,6 +603,8 @@ module.exports = function ({ types: t, template: template }) {
       },
 
       UnaryExpression (path, state) {
+        if (state.inserting)
+          return;
         if (path.node.operator === 'typeof' && t.isIdentifier(path.node.argument)) {
           let identifierName = path.node.argument.name;
           if (identifierName === 'require' && !path.scope.hasBinding(identifierName)) {
