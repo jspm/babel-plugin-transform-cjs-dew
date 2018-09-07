@@ -1,10 +1,12 @@
-import { exports as _msExports, __dew__ as _msExecute } from "ms";
-var exports = {};
+import { dew as _msDew } from "ms";
+var exports = {},
+    _dewExec = false;
 
 var _global = typeof self !== "undefined" ? self : global;
 
-var __dew__ = function () {
-  __dew__ = null;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
 
   /**
    * This is the common logic for both the Node.js and web browser
@@ -17,7 +19,7 @@ var __dew__ = function () {
   exports.disable = disable;
   exports.enable = enable;
   exports.enabled = enabled;
-  exports.humanize = _msExecute && _msExecute() || _msExports;
+  exports.humanize = _msDew();
   /**
    * Active `debug` instances.
    */
@@ -226,6 +228,4 @@ var __dew__ = function () {
     if (val instanceof Error) return val.stack || val.message;
     return val;
   }
-};
-
-export { exports, __dew__ };
+}

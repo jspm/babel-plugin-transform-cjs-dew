@@ -1,13 +1,12 @@
-var exports = {};
+var exports = {},
+    _dewExec = false;
 var module = {
   exports: exports
 };
-
-var __dew__ = function () {
-  __dew__ = null;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
   var exports = 'asdf';
   module.exports = 'asdf';
   exports = module.exports;
-};
-
-export { exports, __dew__ };
+}

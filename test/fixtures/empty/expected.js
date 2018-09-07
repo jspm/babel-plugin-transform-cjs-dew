@@ -1,15 +1,14 @@
-import { exports as _anotherExports, __dew__ as _anotherExecute } from "another";
-var exports = {};
-
-var __dew__ = function () {
-  __dew__ = null;
+import { dew as _anotherDew } from "another";
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
   var thing = {};
 
-  var another = _anotherExecute && _anotherExecute() || _anotherExports;
+  var another = _anotherDew();
 
   exports.y = function p() {
     return {};
   };
-};
-
-export { exports, __dew__ };
+}

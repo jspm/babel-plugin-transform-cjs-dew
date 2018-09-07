@@ -1,9 +1,9 @@
-import { exports as _productionExports, __dew__ as _productionExecute } from "production";
-var exports = {};
+import { dew as _productionDew } from "production";
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
 
-var __dew__ = function () {
-  __dew__ = null;
-  _productionExecute && _productionExecute() || _productionExports;
-};
-
-export { exports, __dew__ };
+  _productionDew();
+}

@@ -1,10 +1,12 @@
-var exports = {};
+var exports = {},
+    _dewExec = false;
 
 var _global = typeof self !== "undefined" ? self : global;
 
-var __dew__ = function () {
+export function dew() {
   var q;
-  __dew__ = null;
+  if (_dewExec) return exports;
+  _dewExec = true;
   var global = 5;
   p = 10, _global.q = q = 11;
   exports = global;
@@ -14,6 +16,4 @@ var __dew__ = function () {
       obj = {};
     }
   };
-};
-
-export { exports, __dew__ };
+}

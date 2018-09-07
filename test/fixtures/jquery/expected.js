@@ -1,9 +1,11 @@
-var exports = {};
+var exports = {},
+    _dewExec = false;
 
 var _global = typeof self !== "undefined" ? self : global;
 
-var __dew__ = function () {
-  __dew__ = null;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
 
   /*!
    * jQuery JavaScript Library v3.2.1
@@ -478,6 +480,4 @@ var __dew__ = function () {
 
     return jQuery;
   });
-};
-
-export { exports, __dew__ };
+}

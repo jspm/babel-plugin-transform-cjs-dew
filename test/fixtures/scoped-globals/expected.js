@@ -1,16 +1,16 @@
-var exports = {};
+var exports = {},
+    _dewExec = false;
 
 var _global = typeof self !== "undefined" ? self : global;
 
-var __dew__ = function () {
+export function dew() {
   var asdf;
-  __dew__ = null;
+  if (_dewExec) return exports;
+  _dewExec = true;
   exports = 1;
   require = 2;
   module = 3;
   __filename = 4;
   __dirname = 5;
   _global.asdf = asdf = 6;
-};
-
-export { exports, __dew__ };
+}

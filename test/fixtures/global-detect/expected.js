@@ -1,11 +1,11 @@
-var exports = {};
+var exports = {},
+    _dewExec = false;
 
 var _global = typeof self !== "undefined" ? self : global;
 
-var __dew__ = function () {
+export function dew() {
   var x;
-  __dew__ = null;
+  if (_dewExec) return exports;
+  _dewExec = true;
   if (typeof _global.x === 'undefined') _global.x = x = 'x';
-};
-
-export { exports, __dew__ };
+}

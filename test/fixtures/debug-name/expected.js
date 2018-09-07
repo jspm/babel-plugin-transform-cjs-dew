@@ -1,8 +1,7 @@
-var exports = {};
-
-var __dew__ = function execute() {
-  __dew__ = null;
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
   exports.asdf = 'asdf';
-};
-
-export { exports, __dew__ };
+}

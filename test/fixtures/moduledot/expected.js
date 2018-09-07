@@ -1,8 +1,9 @@
-import { exports as _xExports, __dew__ as _xExecute } from "x";
-var exports = {};
-
-var __dew__ = function () {
-  __dew__ = null;
+import { dew as _xDew } from "x";
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
 
   for (let i = 0; i < {}.length; i++) {
     ({})[i].thing;
@@ -14,7 +15,6 @@ var __dew__ = function () {
 
   console.log("asdf.js");
   console.log("asdf.js");
-  _xExecute && _xExecute() || _xExports;
-};
 
-export { exports, __dew__ };
+  _xDew();
+}

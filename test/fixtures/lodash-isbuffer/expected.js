@@ -1,15 +1,16 @@
-import { exports as _rootExports, __dew__ as _rootExecute } from "./_root";
-import { exports as _stubFalseExports, __dew__ as _stubFalseExecute } from "./stubFalse";
-var exports = {};
+import { dew as _rootDew } from "./_root";
+import { dew as _stubFalseDew } from "./stubFalse";
+var exports = {},
+    _dewExec = false;
 var module = {
   exports: exports
 };
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
 
-var __dew__ = function () {
-  __dew__ = null;
-
-  var root = _rootExecute && _rootExecute() || _rootExports,
-      stubFalse = _stubFalseExecute && _stubFalseExecute() || _stubFalseExports;
+  var root = _rootDew(),
+      stubFalse = _stubFalseDew();
   /** Detect free variable `exports`. */
 
 
@@ -47,6 +48,4 @@ var __dew__ = function () {
   var isBuffer = nativeIsBuffer || stubFalse;
   module.exports = isBuffer;
   exports = module.exports;
-};
-
-export { exports, __dew__ };
+}

@@ -1,13 +1,12 @@
-import { exports as _processExports, __dew__ as _processExecute } from "process";
-var exports = {};
+import { dew as _processDew } from "process";
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
 
-var __dew__ = function () {
-  __dew__ = null;
-
-  var process = _processExecute && _processExecute() || _processExports;
+  var process = _processDew();
 
   process.env.NODE_ENV = 'test';
   if (process.env.DEBUG) other();
-};
-
-export { exports, __dew__ };
+}

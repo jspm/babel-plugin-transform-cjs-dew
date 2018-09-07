@@ -1,12 +1,11 @@
-import { exports as _bufferExports, __dew__ as _bufferExecute } from "buffer";
-var exports = {};
+import { dew as _bufferDew } from "buffer";
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
 
-var __dew__ = function () {
-  __dew__ = null;
-
-  var Buffer = (_bufferExecute && _bufferExecute() || _bufferExports).Buffer;
+  var Buffer = _bufferDew().Buffer;
 
   console.log(Buffer);
-};
-
-export { exports, __dew__ };
+}

@@ -1,10 +1,10 @@
-import { exports as _xExports, __dew__ as _xExecute } from "/base/x";
-var exports = {};
-
-var __dew__ = function () {
-  __dew__ = null;
+import { dew as _xDew } from "/base/x";
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
   exports = null;
-  _xExecute && _xExecute() || _xExports;
-};
 
-export { exports, __dew__ };
+  _xDew();
+}

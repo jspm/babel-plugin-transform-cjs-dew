@@ -1,7 +1,8 @@
-var exports = {};
-
-var __dew__ = function () {
-  __dew__ = null;
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
   //! moment.js
   ;
 
@@ -15,6 +16,4 @@ var __dew__ = function () {
       a: 'a'
     };
   });
-};
-
-export { exports, __dew__ };
+}

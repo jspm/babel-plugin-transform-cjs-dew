@@ -1,10 +1,11 @@
-var exports = {};
+var exports = {},
+    _dewExec = false;
 var module = {
   exports: exports
 };
-
-var __dew__ = function () {
-  __dew__ = null;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
   Object.defineProperty(module, 'exports', {
     get() {
       return 'yo';
@@ -12,6 +13,4 @@ var __dew__ = function () {
 
   });
   exports = module.exports;
-};
-
-export { exports, __dew__ };
+}

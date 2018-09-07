@@ -1,9 +1,11 @@
-var exports = {};
+var exports = {},
+    _dewExec = false;
 
 var _global = typeof self !== "undefined" ? self : global;
 
-var __dew__ = function () {
-  __dew__ = null;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
   exports.asdf = {
     obj: 'x'
   };
@@ -11,6 +13,4 @@ var __dew__ = function () {
     (this || _global).another = 'y';
     exports.p = 'q';
   }).call(exports.asdf, exports);
-};
-
-export { exports, __dew__ };
+}

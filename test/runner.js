@@ -68,18 +68,18 @@ else
 var s = process.env.NODE_ENV === 'dev' ? require('p') : require('q');
 `;
 
-    assert.equal(transform(source, options).code, `import { exports as _xExports, __dew__ as _xExecute } from "x";
-import { exports as _qExports, __dew__ as _qExecute } from "q";
-var exports = {};
+    assert.equal(transform(source, options).code, `import { dew as _xDew } from "x";
+import { dew as _qDew } from "q";
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
 
-var __dew__ = function () {
-  __dew__ = null;
-  _xExecute && _xExecute() || _xExports;
+  _xDew();
 
-  var s = _qExecute && _qExecute() || _qExports;
-};
-
-export { exports, __dew__ };`);
+  var s = _qDew();
+}`);
 
     assert.equal(seenX, true);
     assert.equal(seenQ, true);

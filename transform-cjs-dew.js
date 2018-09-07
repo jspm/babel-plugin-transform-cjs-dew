@@ -2,14 +2,8 @@ module.exports = function ({ types: t, template: template }) {
   const exportsIdentifier = t.identifier('exports');
   exportsIdentifier.own = true;
   const moduleIdentifier = t.identifier('module');
-  const executeIdentifier = t.identifier('__dew__');
+  const dewIdentifier = t.identifier('dew');
 
-  const exportDewAndExports = t.exportNamedDeclaration(null, [
-    t.exportSpecifier(exportsIdentifier, exportsIdentifier),
-    t.exportSpecifier(executeIdentifier, executeIdentifier)
-  ]);
-
-  const varExports = t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, t.objectExpression([]))]);
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
   const requireSub = (dep, member) => {
@@ -17,10 +11,7 @@ module.exports = function ({ types: t, template: template }) {
       return t.nullLiteral();
     if (dep === null)
       return t.objectExpression([]);
-    const expression = t.logicalExpression('||',
-      t.logicalExpression('&&', dep.execute, t.callExpression(dep.execute, [])),
-      dep.exports
-    );
+    const expression = t.callExpression(dep.dew, []);
     if (!member)
       return expression;
     return t.memberExpression(expression, t.identifier(member));
@@ -84,8 +75,7 @@ module.exports = function ({ types: t, template: template }) {
       }
       const dep = {
         literal: t.stringLiteral(depModule),
-        exports: t.identifier(depName + 'Exports'),
-        execute: t.identifier(depName + 'Execute'),
+        dew: t.identifier(depName + 'Dew'),
       };
       state.deps.push(dep)
       return dep;
@@ -300,13 +290,17 @@ module.exports = function ({ types: t, template: template }) {
           state.deps.forEach(dep => {
             dewBodyWrapper.push(
               t.importDeclaration([
-                t.importSpecifier(dep.exports, exportsIdentifier),
-                t.importSpecifier(dep.execute, executeIdentifier)
+                t.importSpecifier(dep.dew, dewIdentifier),
               ], dep.literal)
             );
           });
 
-          dewBodyWrapper.push(varExports);
+          const execIdentifier = path.scope.generateUidIdentifier('dewExec');
+
+          dewBodyWrapper.push(t.variableDeclaration('var', [
+            t.variableDeclarator(exportsIdentifier, t.objectExpression([])),
+            t.variableDeclarator(execIdentifier, t.booleanLiteral(false))
+          ]));
 
           let possibleExportsAssignment = [];
           if (state.usesModule) {
@@ -324,24 +318,16 @@ module.exports = function ({ types: t, template: template }) {
               ]));
 
           dewBodyWrapper.push(
-            t.variableDeclaration('var', [
-              t.variableDeclarator(
-                executeIdentifier,
-                t.functionExpression(state.dewDebugNameIdentifier, [], t.blockStatement([
-                  t.expressionStatement(
-                    t.assignmentExpression('=',
-                      executeIdentifier,
-                      t.nullLiteral()
-                    )
-                  ),
-                  ...path.node.body,
-                  ...possibleExportsAssignment
-                ]))
-              )
-            ])
+            t.exportNamedDeclaration(
+              t.functionDeclaration(dewIdentifier, [], t.blockStatement([
+                t.ifStatement(execIdentifier, t.returnStatement(exportsIdentifier)),
+                t.expressionStatement(t.assignmentExpression('=', execIdentifier, t.booleanLiteral(true))),
+                ...path.node.body,
+                ...possibleExportsAssignment
+              ])),
+              []
+            )
           );
-
-          dewBodyWrapper.push(exportDewAndExports);
 
           for (const childPath of path.get('body')) {
             childPath.remove();

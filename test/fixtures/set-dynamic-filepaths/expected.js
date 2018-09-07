@@ -1,9 +1,8 @@
-var exports = {};
-
-var __dew__ = function () {
-  __dew__ = null;
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
   console.log("blah.js");
   console.log("");
-};
-
-export { exports, __dew__ };
+}

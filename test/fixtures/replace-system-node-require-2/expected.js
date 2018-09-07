@@ -1,13 +1,12 @@
-import { exports as _fooExports, __dew__ as _fooExecute } from "foo";
-import { exports as _processExports, __dew__ as _processExecute } from "process";
-var exports = {};
+import { dew as _fooDew } from "foo";
+import { dew as _processDew } from "process";
+var exports = {},
+    _dewExec = false;
+export function dew() {
+  if (_dewExec) return exports;
+  _dewExec = true;
 
-var __dew__ = function () {
-  __dew__ = null;
+  var process = _processDew();
 
-  var process = _processExecute && _processExecute() || _processExports;
-
-  exports = System._nodeRequire && (_fooExecute && _fooExecute() || _fooExports) || process;
-};
-
-export { exports, __dew__ };
+  exports = System._nodeRequire && _fooDew() || process;
+}
