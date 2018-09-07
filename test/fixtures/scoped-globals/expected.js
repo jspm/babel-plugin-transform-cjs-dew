@@ -13,4 +13,5 @@ export function dew() {
   __filename = 4;
   __dirname = 5;
   _global.asdf = asdf = 6;
+  return exports;
 }

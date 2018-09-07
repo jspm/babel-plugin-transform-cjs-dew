@@ -6,7 +6,7 @@ var module = {
   exports: exports
 };
 export function dew() {
-  if (_dewExec) return exports;
+  if (_dewExec) return module.exports;
   _dewExec = true;
 
   var root = _rootDew(),
@@ -47,5 +47,5 @@ export function dew() {
 
   var isBuffer = nativeIsBuffer || stubFalse;
   module.exports = isBuffer;
-  exports = module.exports;
+  return module.exports;
 }

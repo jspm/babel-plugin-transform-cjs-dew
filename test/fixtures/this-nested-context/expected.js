@@ -12,4 +12,5 @@ export function dew() {
     this['fn']();
     exports.p = 'q';
   }(exports);
+  return exports;
 }

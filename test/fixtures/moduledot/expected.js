@@ -17,4 +17,6 @@ export function dew() {
   console.log("asdf.js");
 
   _xDew();
+
+  return exports;
 }

@@ -4,7 +4,7 @@ var module = {
   exports: exports
 };
 export function dew() {
-  if (_dewExec) return exports;
+  if (_dewExec) return module.exports;
   _dewExec = true;
   delete {}['asdf'];
 
@@ -16,5 +16,5 @@ export function dew() {
 
   var path = "/resolved";
   fs.readFile(path);
-  exports = module.exports;
+  return module.exports;
 }

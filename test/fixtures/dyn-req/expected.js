@@ -7,4 +7,6 @@ export function dew() {
   exports = null;
 
   _xDew();
+
+  return exports;
 }

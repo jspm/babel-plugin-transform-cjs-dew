@@ -9,4 +9,5 @@ export function dew() {
 
   process.env.NODE_ENV = 'test';
   if (process.env.DEBUG) other();
+  return exports;
 }

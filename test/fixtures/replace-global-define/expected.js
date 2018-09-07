@@ -11,4 +11,6 @@ export function dew() {
       });
     }
   }
+
+  return exports;
 }

@@ -8,4 +8,5 @@ export function dew() {
   }('domready', function (ready) {
     return {};
   });
+  return exports;
 }

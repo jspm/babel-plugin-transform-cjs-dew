@@ -8,4 +8,5 @@ export function dew() {
   function main() {}
 
   exports.another = 'export';
+  return exports;
 }

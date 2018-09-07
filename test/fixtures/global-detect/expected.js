@@ -8,4 +8,5 @@ export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
   if (typeof _global.x === 'undefined') _global.x = x = 'x';
+  return exports;
 }

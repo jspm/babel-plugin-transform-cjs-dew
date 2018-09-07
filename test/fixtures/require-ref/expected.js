@@ -5,4 +5,5 @@ export function dew() {
   _dewExec = true;
   var x = null;
   x('asdf');
+  return exports;
 }

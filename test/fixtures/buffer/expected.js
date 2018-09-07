@@ -8,4 +8,5 @@ export function dew() {
   var Buffer = _bufferDew().Buffer;
 
   console.log(Buffer);
+  return exports;
 }

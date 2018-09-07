@@ -6,4 +6,5 @@ export function dew() {
   {
     b();
   }
+  return exports;
 }

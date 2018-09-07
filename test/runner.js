@@ -79,6 +79,8 @@ export function dew() {
   _xDew();
 
   var s = _qDew();
+
+  return exports;
 }`);
 
     assert.equal(seenX, true);

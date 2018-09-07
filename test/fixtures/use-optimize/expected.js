@@ -6,4 +6,6 @@ export function dew() {
   _dewExec = true;
 
   _productionDew();
+
+  return exports;
 }

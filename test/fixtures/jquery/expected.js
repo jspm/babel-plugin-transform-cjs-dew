@@ -480,4 +480,6 @@ export function dew() {
 
     return jQuery;
   });
+
+  return exports;
 }

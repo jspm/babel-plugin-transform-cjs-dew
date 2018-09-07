@@ -8,4 +8,5 @@ export function dew() {
   `/base/x/${thing}`;
   "/x" + '/y';
   x;
+  return exports;
 }

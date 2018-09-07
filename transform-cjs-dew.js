@@ -60,7 +60,6 @@ module.exports = function ({ types: t, template: template }) {
     }
 
     let depName = path.scope.getProgramParent().generateUidIdentifier(depModule).name;
-    let dep;
 
     // apply resolver
     const depResolved = state.opts.resolve ? state.opts.resolve(depModule, false) : depModule;
@@ -166,31 +165,6 @@ module.exports = function ({ types: t, template: template }) {
       else
         path.parentPath.replaceWith(alternate);
     }
-  }
-
-  function mightBeReturned (path) {
-    if (!path.parentPath)
-      return false;
-    const parentNode = path.parentPath.node;
-    if (t.isBinaryExpression(parentNode)) {
-      if (parentNode.operator === '&&')
-        return parentNode.left !== path.node;
-      else if (parentNode.operator === '||')
-        return mightBeReturned(path.parentPath);
-    }
-    if (t.isCallExpression(parentNode))
-      return parentNode.callee !== path.node;
-    if (t.isConditionalExpression(parentNode)) {
-      if (parentNode.test === path.node)
-        return false;
-      return mightBeReturned(path.parentPath);
-    }
-    if (t.isSequenceExpression(parentNode))
-      return parentNode.expressions[parentNode.expressions.length - 1] === path.node;
-    if (t.isExpressionStatement(parentNode))
-      return false;
-    // anything else -> true
-    return true;
   }
 
   let thisOrGlobal;
@@ -302,13 +276,13 @@ module.exports = function ({ types: t, template: template }) {
             t.variableDeclarator(execIdentifier, t.booleanLiteral(false))
           ]));
 
-          let possibleExportsAssignment = [];
+          let exportsReturn;
           if (state.usesModule) {
             dewBodyWrapper.push(moduleDeclarator);
-            possibleExportsAssignment.push(t.expressionStatement(t.assignmentExpression('=',
-              exportsIdentifier,
-              t.memberExpression(moduleIdentifier, exportsIdentifier)
-            )));
+            exportsReturn = t.returnStatement(t.memberExpression(moduleIdentifier, exportsIdentifier));
+          }
+          else {
+            exportsReturn = t.returnStatement(exportsIdentifier);
           }
 
           if (state.usesGlobal)
@@ -320,10 +294,10 @@ module.exports = function ({ types: t, template: template }) {
           dewBodyWrapper.push(
             t.exportNamedDeclaration(
               t.functionDeclaration(dewIdentifier, [], t.blockStatement([
-                t.ifStatement(execIdentifier, t.returnStatement(exportsIdentifier)),
+                t.ifStatement(execIdentifier, exportsReturn),
                 t.expressionStatement(t.assignmentExpression('=', execIdentifier, t.booleanLiteral(true))),
                 ...path.node.body,
-                ...possibleExportsAssignment
+                exportsReturn
               ])),
               []
             )

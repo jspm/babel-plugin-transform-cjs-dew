@@ -5,4 +5,5 @@ export function dew() {
   _dewExec = true;
   // this isnt supposed to work, but so be it
   exports = 'asdf';
+  return exports;
 }

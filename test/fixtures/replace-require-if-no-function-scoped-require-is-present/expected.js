@@ -17,4 +17,6 @@ export function dew() {
       exports.cjs = true;
     }
   })();
+
+  return exports;
 }

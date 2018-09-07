@@ -16,4 +16,5 @@ export function dew() {
       obj = {};
     }
   };
+  return exports;
 }

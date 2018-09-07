@@ -9,4 +9,5 @@ export function dew() {
   {
     return 5 && undefined;
   }
+  return exports;
 }

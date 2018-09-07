@@ -5,4 +5,5 @@ export function dew() {
   _dewExec = true;
   console.log("blah.js");
   console.log("");
+  return exports;
 }

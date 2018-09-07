@@ -5,4 +5,5 @@ export function dew() {
   _dewExec = true;
   var module;
   module.exports = 'asdf';
+  return exports;
 }

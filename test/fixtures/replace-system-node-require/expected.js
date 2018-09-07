@@ -7,4 +7,6 @@ export function dew() {
   System._nodeRequire("foo");
 
   SystemJS._nodeRequire("bar");
+
+  return exports;
 }

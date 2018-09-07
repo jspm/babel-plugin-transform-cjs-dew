@@ -13,4 +13,5 @@ export function dew() {
     (this || _global).another = 'y';
     exports.p = 'q';
   }).call(exports.asdf, exports);
+  return exports;
 }

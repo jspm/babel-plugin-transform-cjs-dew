@@ -9,4 +9,5 @@ export function dew() {
   var process = _processDew();
 
   exports = System._nodeRequire && _fooDew() || process;
+  return exports;
 }

@@ -11,4 +11,6 @@ export function dew() {
   exports.y = function p() {
     return {};
   };
+
+  return exports;
 }
