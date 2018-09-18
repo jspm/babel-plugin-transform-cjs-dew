@@ -13,7 +13,8 @@ require('babel-core').transform('<source>', {
   },
   plugins: [
     ['transform-cjs-dew', {
-      filename: 'custom-filename.js',
+      filename: '"custom-filename.js"',
+      dirname: '"/dirname"',
       define: {
         'process.env.NODE_ENV': '"development"'
       },

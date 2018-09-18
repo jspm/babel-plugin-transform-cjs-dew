@@ -3,7 +3,7 @@ var exports = {},
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-  console.log("blah.js");
-  console.log("");
+  console.log('blah.js');
+  console.log('');
   return exports;
 }

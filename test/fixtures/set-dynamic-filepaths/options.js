@@ -1,3 +1,4 @@
 module.exports = {
-  filename: 'blah.js'
+  filename: '\'blah.js\'',
+  dirname: '\'\''
 };

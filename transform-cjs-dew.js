@@ -425,7 +425,7 @@ module.exports = function ({ types: t, template: template }) {
               case 'id':
               case 'filename':
                 if (state.opts.filename)
-                  parentPath.replaceWith(t.stringLiteral(state.opts.filename));
+                  parentPath.replaceWith(template(state.opts.filename)());
               break;
               case 'parent':
                 parentPath.replaceWith(t.identifier('undefined'));
@@ -465,12 +465,10 @@ module.exports = function ({ types: t, template: template }) {
         }
 
         if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename')) {
-          path.replaceWith(t.stringLiteral(state.opts.filename));
+          path.replaceWith(template(state.opts.filename)());
         }
-        else if (identifierName === '__dirname' && state.opts.filename && !path.scope.hasBinding('__dirname')) {
-          let parts = state.opts.filename.split('/');
-          parts.pop();
-          path.replaceWith(t.stringLiteral(parts.join('/')));
+        else if (identifierName === '__dirname' && state.opts.dirname && !path.scope.hasBinding('__dirname')) {
+          path.replaceWith(template(state.opts.dirname)());
         }
         else if (identifierName === 'global' && !path.scope.hasBinding('global')) {
           state.usesGlobal = true;
