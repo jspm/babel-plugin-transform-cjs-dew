@@ -11,7 +11,7 @@ module.exports = function ({ types: t, template: template }) {
       return t.nullLiteral();
     if (dep === null)
       return t.objectExpression([]);
-    const expression = t.callExpression(dep.dew, []);
+    const expression = dep.dew ? t.callExpression(dep.id, []) : dep.id;
     if (!member)
       return expression;
     return t.memberExpression(expression, t.identifier(member));
@@ -72,9 +72,13 @@ module.exports = function ({ types: t, template: template }) {
         if (dep.literal.value === depModule)
           return dep;
       }
+      let dew = true;
+      if (state.opts.esmDependencies && state.opts.esmDependencies(depModule))
+        dew = false;
       const dep = {
         literal: t.stringLiteral(depModule),
-        dew: t.identifier(depName + 'Dew'),
+        id: t.identifier(depName + (dew ? 'Dew' : '')),
+        dew
       };
       state.deps.push(dep)
       return dep;
@@ -175,10 +179,6 @@ module.exports = function ({ types: t, template: template }) {
         enter (path, state) {
           if (path.hub.file.shebang)
             path.hub.file.shebang = '';
-          if (state.opts.dewDebugName)
-            state.dewDebugNameIdentifier = t.identifier(state.opts.dewDebugName);
-          else
-            state.dewDebugNameIdentifier = null;
 
           path.node.directives.forEach((d, index) => {
             if (d.value && d.value.value === 'use strict') {
@@ -264,7 +264,7 @@ module.exports = function ({ types: t, template: template }) {
           state.deps.forEach(dep => {
             dewBodyWrapper.push(
               t.importDeclaration([
-                t.importSpecifier(dep.dew, dewIdentifier),
+                dep.dew ? t.importSpecifier(dep.id, dewIdentifier) : t.importDefaultSpecifier(dep.id)
               ], dep.literal)
             );
           });

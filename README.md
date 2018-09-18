@@ -17,12 +17,15 @@ require('babel-core').transform('<source>', {
       define: {
         'process.env.NODE_ENV': '"development"'
       },
-      dewDebugName: 'execute',
       resolve (name, isRequireResolve) {
         if (name === 'process')
           return 'process-path';
         if (name === './x')
           return './x.js';
+      },
+      // optional support for ESM dependencies with default export
+      esmDependencies (resolved) {
+        return resolved.endsWith('.mjs');
       }
     }]
   ]
@@ -32,7 +35,8 @@ require('babel-core').transform('<source>', {
 Output:
 
 ```js
-import { exports as _depExports, __dew__ as _depExecute } from './dep.dew.js';
+import { dew as _depDew } from './dep.dew.js';
+import depB from './dep.mjs';
 var exports = {};
 var module = {
   get exports () {
@@ -42,13 +46,17 @@ var module = {
     exports = _exports;
   }
 };
-var __dew__ = function () {
+export function dew () {
+  if (executed)
+    return module.exports;
+  executed = true;
   __dew__ = null;
   module.exports = function () {};
   exports.blah = 'hi';
-  var a = (_depExecute && _depExecute() || _depExports).y;
-};
-export { exports, __dew__ }
+  var a = _depDew().y;
+  var b = depB;
+  return module.exports;
+}
 ```
 
 To import a CommonJS module tree converted via the above into an ES module, the following
@@ -56,9 +64,8 @@ _execution wrapper_ is required:
 
 x.js
 ```js
-import { exports, __dew__ } from './x.dew.js';
-if (__dew__) __dew__();
-export { exports as default };
+import { dew } from './x.dew.js';
+export default dew();
 ```
 
 As well as execution wrapping, the following code transformations are handled:
