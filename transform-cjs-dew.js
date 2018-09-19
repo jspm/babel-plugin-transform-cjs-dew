@@ -1,4 +1,6 @@
-module.exports = function ({ types: t, template: template }) {
+const { parse } = require('@babel/parser');
+
+module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
   exportsIdentifier.own = true;
   const moduleIdentifier = t.identifier('module');
@@ -172,6 +174,8 @@ module.exports = function ({ types: t, template: template }) {
   }
 
   let thisOrGlobal;
+  let filenameReplace;
+  let dirnameReplace;
 
   return {
     visitor: {
@@ -186,6 +190,11 @@ module.exports = function ({ types: t, template: template }) {
               path.node.directives.splice(index, 1);
             }
           });
+
+          if (state.opts.filename)
+            filenameReplace = parse('(' + state.opts.filename + ')').program.body[0].expression;
+          if (state.opts.dirname)
+            dirnameReplace = parse('(' + state.opts.dirname + ')').program.body[0].expression;
 
           state.define = {};
           if (state.opts.define)
@@ -425,7 +434,7 @@ module.exports = function ({ types: t, template: template }) {
               case 'id':
               case 'filename':
                 if (state.opts.filename)
-                  parentPath.replaceWithSourceString(state.opts.filename);
+                  parentPath.replaceWith(filenameReplace);
               break;
               case 'parent':
                 parentPath.replaceWith(t.identifier('undefined'));
@@ -465,10 +474,10 @@ module.exports = function ({ types: t, template: template }) {
         }
 
         if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename')) {
-          path.replaceWithSourceString(state.opts.filename);
+          path.replaceWith(filenameReplace);
         }
         else if (identifierName === '__dirname' && state.opts.dirname && !path.scope.hasBinding('__dirname')) {
-          path.replaceWithSourceString(state.opts.dirname);
+          path.replaceWith(dirnameReplace);
         }
         else if (identifierName === 'global' && !path.scope.hasBinding('global')) {
           state.usesGlobal = true;
