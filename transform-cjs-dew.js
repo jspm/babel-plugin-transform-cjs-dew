@@ -193,9 +193,9 @@ module.exports = function ({ types: t }) {
           });
 
           if (state.opts.filename)
-            filenameReplace = parse('(' + state.opts.filename + ')', { plugins: stage3Syntax }).program.body[0].expression;
+            filenameReplace = parse('(' + state.opts.filename + ')', { sourceType: 'module', plugins: stage3Syntax }).program.body[0].expression;
           if (state.opts.dirname)
-            dirnameReplace = parse('(' + state.opts.dirname + ')', { plugins: stage3Syntax }).program.body[0].expression;
+            dirnameReplace = parse('(' + state.opts.dirname + ')', { sourceType: 'module', plugins: stage3Syntax }).program.body[0].expression;
 
           state.define = {};
           if (state.opts.define)
