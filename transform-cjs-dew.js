@@ -1,4 +1,5 @@
 const { parse } = require('@babel/parser');
+const stage3Syntax = ['asyncGenerators', 'classProperties', 'optionalCatchBinding', 'objectRestSpread', 'numericSeparator', 'dynamicImport', 'importMeta'];
 
 module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
@@ -192,9 +193,9 @@ module.exports = function ({ types: t }) {
           });
 
           if (state.opts.filename)
-            filenameReplace = parse('(' + state.opts.filename + ')').program.body[0].expression;
+            filenameReplace = parse('(' + state.opts.filename + ')', { plugins: stage3Syntax }).program.body[0].expression;
           if (state.opts.dirname)
-            dirnameReplace = parse('(' + state.opts.dirname + ')').program.body[0].expression;
+            dirnameReplace = parse('(' + state.opts.dirname + ')', { plugins: stage3Syntax }).program.body[0].expression;
 
           state.define = {};
           if (state.opts.define)
