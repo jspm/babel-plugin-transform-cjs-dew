@@ -1,3 +1,5 @@
+const stage3Syntax = ['asyncGenerators', 'classProperties', 'optionalCatchBinding', 'objectRestSpread', 'numericSeparator', 'dynamicImport', 'importMeta'];
+
 module.exports = function ({ types: t, template: template }) {
   const exportsIdentifier = t.identifier('exports');
   exportsIdentifier.own = true;
@@ -425,7 +427,7 @@ module.exports = function ({ types: t, template: template }) {
               case 'id':
               case 'filename':
                 if (state.opts.filename)
-                  parentPath.replaceWith(template(state.opts.filename)());
+                  parentPath.replaceWith(template(state.opts.filename, { plugins: stage3Syntax })());
               break;
               case 'parent':
                 parentPath.replaceWith(t.identifier('undefined'));
@@ -465,10 +467,10 @@ module.exports = function ({ types: t, template: template }) {
         }
 
         if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename')) {
-          path.replaceWith(template(state.opts.filename)());
+          path.replaceWith(template(state.opts.filename, { plugins: stage3Syntax })());
         }
         else if (identifierName === '__dirname' && state.opts.dirname && !path.scope.hasBinding('__dirname')) {
-          path.replaceWith(template(state.opts.dirname)());
+          path.replaceWith(template(state.opts.dirname, { plugins: stage3Syntax })());
         }
         else if (identifierName === 'global' && !path.scope.hasBinding('global')) {
           state.usesGlobal = true;
