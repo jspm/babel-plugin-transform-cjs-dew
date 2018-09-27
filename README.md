@@ -26,7 +26,7 @@ require('babel-core').transform('<source>', {
       },
       // resolve used specifically for wildcard requires
       // returns require('./' + x + '.js') as './*.js'
-      // return a string or null to indicate no resolution
+      // return a string or array or null to indicate no resolution
       resolveWildcard (name) {
 
       }

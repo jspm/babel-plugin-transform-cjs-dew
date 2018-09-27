@@ -9,15 +9,12 @@ module.exports = function ({ types: t }) {
 
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
-  const requireSub = (dep, member) => {
+  const requireSub = (dep) => {
     if (dep === undefined)
       return t.nullLiteral();
     if (dep === null)
       return t.objectExpression([]);
-    const expression = dep.dew ? t.callExpression(dep.id, []) : dep.id;
-    if (!member)
-      return expression;
-    return t.memberExpression(expression, t.identifier(member));
+    return dep.dew ? t.callExpression(dep.id, []) : dep.id;
   };
   const moduleDeclarator = t.variableDeclaration('var', [
     t.variableDeclarator(moduleIdentifier, t.objectExpression([
@@ -46,7 +43,7 @@ module.exports = function ({ types: t }) {
     return expr;
   }
 
-  function resolvePartialWildcardString (node, lastIsWildcard) {
+  function resolvePartialWildcardString (node, lastIsWildcard, exprs) {
     if (t.isStringLiteral(node))
       return node.value;
     
@@ -60,7 +57,7 @@ module.exports = function ({ types: t }) {
         }
         const nextNode = node.expressions[i];
         if (nextNode) {
-          const nextStr = resolvePartialWildcardString(nextNode, lastIsWildcard);
+          const nextStr = resolvePartialWildcardString(nextNode, lastIsWildcard, exprs);
           if (nextStr.length) {
             lastIsWildcard = nextStr.endsWith('*');
             str += nextStr;
@@ -71,41 +68,71 @@ module.exports = function ({ types: t }) {
     }
 
     if (t.isBinaryExpression(node) && node.operator === '+') {
-      const leftResolved = resolvePartialWildcardString(node.left, lastIsWildcard);
+      const leftResolved = resolvePartialWildcardString(node.left, lastIsWildcard, exprs);
       if (leftResolved.length)
         lastIsWildcard = leftResolved.endsWith('*');
-      const rightResolved = resolvePartialWildcardString(node.right, lastIsWildcard);
+      const rightResolved = resolvePartialWildcardString(node.right, lastIsWildcard, exprs);
       return leftResolved + rightResolved;
     }
     
+    exprs.push(node);
     return lastIsWildcard ? '' : '*';
   }
 
   function addDependency (path, state, depModuleArg) {
-    let depModule = resolvePartialWildcardString(depModuleArg, false);
+    const exprs = [];
+    let depModule = resolvePartialWildcardString(depModuleArg, false, exprs);
 
     // no support for fully dynamic require
     if (depModule === '*')
-      return;
+      return requireSub(undefined);
+
+    let depResolved;
 
     if (depModule.indexOf('*') !== -1) {
-      depModule = state.opts.resolveWildcard ? state.opts.resolveWildcard(depModule) : null;
-      if (!depModule)
-        return;
+      depResolved = state.opts.resolveWildcard ? state.opts.resolveWildcard(depModule) : null;
+      if (!depResolved)
+        return requireSub(undefined);
+
+      if (depResolved instanceof Array) {
+        // add each module as a dependency
+        const depExprs = depResolved.map(m => addDependency(path, state, t.stringLiteral(m)));
+
+        const exprIds = exprs.map((_expr, i) => t.Identifier('e' + (i === 0 ? '' : i + 1)));
+
+        const regEx = new RegExp(depModule.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '(.*)'));
+        const matchExprs = depResolved.map(resolved => {
+          const match = resolved.match(regEx);
+          return exprs.map((_expr, i) => t.binaryExpression('===', exprIds[i], t.stringLiteral(match[i + 1]))).reduce((reduction, next) => {
+            if (reduction)
+              return t.logicalExpression('&&', reduction, next);
+            return next;
+          }, null);
+        });
+
+        const matchExpression = matchExprs.reverse().reduce((reduction, next, i) => {
+          return t.conditionalExpression(next, depExprs[matchExprs.length - i - 1], reduction);
+        }, t.nullLiteral());
+        
+        return t.callExpression(t.functionExpression(null, exprIds, t.blockStatement([t.returnStatement(matchExpression)])), exprs);
+      }
+    }
+    else {
+      depResolved = state.opts.resolve ? state.opts.resolve(depModule, false) : depModule;
     }
 
     let depName = path.scope.getProgramParent().generateUidIdentifier(depModule).name;
 
     // apply resolver
-    const depResolved = state.opts.resolve ? state.opts.resolve(depModule, false) : depModule;
+    
     if (depResolved === null) {
-      return null;
+      return requireSub(null);
     }
     else {
       depModule = depResolved || depModule;
       for (let dep of state.deps) {
         if (dep.literal.value === depModule)
-          return dep;
+          return requireSub(dep);
       }
       let dew = true;
       if (state.opts.esmDependencies && state.opts.esmDependencies(depModule))
@@ -116,7 +143,7 @@ module.exports = function ({ types: t }) {
         dew
       };
       state.deps.push(dep)
-      return dep;
+      return requireSub(dep);
     }
   }
 
@@ -287,14 +314,14 @@ module.exports = function ({ types: t }) {
           if (state.hasProcess) {
             let dep = addDependency(path, state, t.stringLiteral('process'));
             path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('process'), requireSub(dep))
+              t.variableDeclarator(t.identifier('process'), dep)
             ]));
           }
 
           if (state.hasBuffer) {
             let dep = addDependency(path, state, t.stringLiteral('buffer'));
             path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('Buffer'), requireSub(dep, 'Buffer'))
+              t.variableDeclarator(t.identifier('Buffer'), t.memberExpression(dep, t.identifier('Buffer')))
             ]));
           }
 
@@ -443,7 +470,7 @@ module.exports = function ({ types: t }) {
         if (identifierName === 'require' && !path.scope.hasBinding('require')) {
           let parentPath = path.parentPath;
           if (t.isCallExpression(parentPath) && parentPath.node.callee === path.node) {
-            parentPath.replaceWith(requireSub(addDependency(path, state, parentPath.node.arguments[0])));
+            parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0]));
           }
           else {
             // dynamic require -> null literal
@@ -483,7 +510,7 @@ module.exports = function ({ types: t }) {
               // require alternative
               case 'require':
                 if (t.isCallExpression(parentPath.parent) && parentPath.parent.callee === parentPath.node)
-                  parentPath.parentPath.replaceWith(requireSub(addDependency(parentPath, state, parentPath.parent.arguments[0])));
+                  parentPath.parentPath.replaceWith(addDependency(parentPath, state, parentPath.parent.arguments[0]));
                 else
                   state.usesDynamicRequire = true;
               break;
