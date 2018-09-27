@@ -24,6 +24,12 @@ require('babel-core').transform('<source>', {
         if (name === './x')
           return './x.js';
       },
+      // resolve used specifically for wildcard requires
+      // returns require('./' + x + '.js') as './*.js'
+      // return a string or null to indicate no resolution
+      resolveWildcard (name) {
+
+      }
       // optional support for ESM dependencies with default export
       esmDependencies (resolved) {
         return resolved.endsWith('.mjs');

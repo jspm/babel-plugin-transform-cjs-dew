@@ -46,20 +46,52 @@ module.exports = function ({ types: t }) {
     return expr;
   }
 
+  function resolvePartialWildcardString (node, lastIsWildcard) {
+    if (t.isStringLiteral(node))
+      return node.value;
+    
+      if (t.isTemplateLiteral(node)) {
+      let str = '';
+      for (let i = 0; i < node.quasis.length; i++) {
+        const quasiStr = node.quasis[i].value.cooked;
+        if (quasiStr.length) {
+          str += quasiStr;
+          lastIsWildcard = false;
+        }
+        const nextNode = node.expressions[i];
+        if (nextNode) {
+          const nextStr = resolvePartialWildcardString(nextNode, lastIsWildcard);
+          if (nextStr.length) {
+            lastIsWildcard = nextStr.endsWith('*');
+            str += nextStr;
+          }
+        }
+      }
+      return str;
+    }
+
+    if (t.isBinaryExpression(node) && node.operator === '+') {
+      const leftResolved = resolvePartialWildcardString(node.left, lastIsWildcard);
+      if (leftResolved.length)
+        lastIsWildcard = leftResolved.endsWith('*');
+      const rightResolved = resolvePartialWildcardString(node.right, lastIsWildcard);
+      return leftResolved + rightResolved;
+    }
+    
+    return lastIsWildcard ? '' : '*';
+  }
+
   function addDependency (path, state, depModuleArg) {
-    let depModule;
-    if (t.isStringLiteral(depModuleArg)) {
-      depModule = depModuleArg.value;
-    }
-    else if (t.isTemplateLiteral(depModuleArg)) {
-      if (depModuleArg.expressions.length !== 0)
-        return;
-      depModule = depModuleArg.quasis[0].value.cooked;
-    }
-    else {
-      // no support for dynamic require currently
-      // just becomes a "null" module
+    let depModule = resolvePartialWildcardString(depModuleArg, false);
+
+    // no support for fully dynamic require
+    if (depModule === '*')
       return;
+
+    if (depModule.indexOf('*') !== -1) {
+      depModule = state.opts.resolveWildcard ? state.opts.resolveWildcard(depModule) : null;
+      if (!depModule)
+        return;
     }
 
     let depName = path.scope.getProgramParent().generateUidIdentifier(depModule).name;
