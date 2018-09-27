@@ -47,7 +47,7 @@ module.exports = function ({ types: t }) {
     if (t.isStringLiteral(node))
       return node.value;
     
-      if (t.isTemplateLiteral(node)) {
+    if (t.isTemplateLiteral(node)) {
       let str = '';
       for (let i = 0; i < node.quasis.length; i++) {
         const quasiStr = node.quasis[i].value.cooked;
@@ -74,6 +74,10 @@ module.exports = function ({ types: t }) {
       const rightResolved = resolvePartialWildcardString(node.right, lastIsWildcard, exprs);
       return leftResolved + rightResolved;
     }
+
+    if (t.isIdentifier(node, { name: '__dirname' })) {
+      return '.';
+    }
     
     exprs.push(node);
     return lastIsWildcard ? '' : '*';
@@ -91,12 +95,13 @@ module.exports = function ({ types: t }) {
 
     if (depModule.indexOf('*') !== -1) {
       depResolved = state.opts.resolveWildcard ? state.opts.resolveWildcard(depModule) : null;
+
       if (!depResolved)
         return requireSub(undefined);
 
       if (depResolved instanceof Array) {
-        // add each module as a dependency
-        const depExprs = depResolved.map(m => addDependency(path, state, t.stringLiteral(m)));
+        // add each module as a dependency (still using resolver)
+        const depExprs = depResolved.map(m => addDependency(path, state, t.stringLiteral(state.opts.resolve ? state.opts.resolve(m, false) || m : m)));
 
         const exprIds = exprs.map((_expr, i) => t.Identifier('e' + (i === 0 ? '' : i + 1)));
 
@@ -116,10 +121,11 @@ module.exports = function ({ types: t }) {
         
         return t.callExpression(t.functionExpression(null, exprIds, t.blockStatement([t.returnStatement(matchExpression)])), exprs);
       }
+
+      depModule = depResolved;
     }
-    else {
-      depResolved = state.opts.resolve ? state.opts.resolve(depModule, false) : depModule;
-    }
+    
+    depResolved = state.opts.resolve ? state.opts.resolve(depModule, false) : depModule;
 
     let depName = path.scope.getProgramParent().generateUidIdentifier(depModule).name;
 
@@ -251,10 +257,12 @@ module.exports = function ({ types: t }) {
             }
           });
 
-          if (state.opts.filename)
+          if (state.opts.filename) {
             filenameReplace = parse('(' + state.opts.filename + ')', { sourceType: 'module', plugins: stage3Syntax }).program.body[0].expression;
-          if (state.opts.dirname)
+          }
+          if (state.opts.dirname) {
             dirnameReplace = parse('(' + state.opts.dirname + ')', { sourceType: 'module', plugins: stage3Syntax }).program.body[0].expression;
+          }
 
           state.define = {};
           if (state.opts.define)
