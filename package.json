@@ -1,5 +1,5 @@
 {
-  "name": "babel-plugin-transform-cjs-dew",
+  "name": "@jspm/babel-plugin-transform-cjs-dew",
   "version": "0.3.0",
   "description": "Converts CommonJS modules into ES modules",
   "repository": {
