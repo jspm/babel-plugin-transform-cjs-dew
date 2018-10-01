@@ -1,12 +1,12 @@
 {
-  "name": "@jspm/babel-plugin-transform-cjs-dew",
+  "name": "babel-plugin-transform-cjs-dew",
   "version": "0.3.0",
   "description": "Converts CommonJS modules into ES modules",
   "repository": {
     "type": "git",
-    "url": "http://github.com/systemjs/babel-plugin-transform-cjs-dew.git"
+    "url": "http://github.com/jspm/babel-plugin-transform-cjs-dew.git"
   },
-  "author": "guybedford",
+  "author": "Guy Bedford",
   "license": "MIT",
   "main": "transform-cjs-dew.js",
   "devDependencies": {
