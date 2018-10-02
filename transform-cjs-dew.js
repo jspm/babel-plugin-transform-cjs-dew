@@ -27,7 +27,9 @@ module.exports = function ({ types: t }) {
   function isOptionalRequire (path) {
     const secondParent = path.parentPath && path.parentPath.parentPath;
     const fourthParent = secondParent.parentPath && secondParent.parentPath.parentPath;
-    return secondParent && fourthParent && (t.isVariableDeclarator(secondParent.node) || t.isExpressionStatement(secondParent.node)) && t.isTryStatement(fourthParent.node) && fourthParent.node.handler.body.body.length === 0;
+    return secondParent && fourthParent &&
+        (t.isVariableDeclarator(path.parentPath.node) || t.isAssignmentExpression(path.parentPath.node)) &&
+        (t.isVariableDeclarator(secondParent.node) || t.isExpressionStatement(secondParent.node)) && t.isTryStatement(fourthParent.node) && fourthParent.node.handler.body.body.length === 0;
   }
 
   const cjsScopeVars = ['require', 'module', 'exports', '__filename', '__dirname'];
