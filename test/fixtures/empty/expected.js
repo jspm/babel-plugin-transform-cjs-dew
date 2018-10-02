@@ -4,12 +4,12 @@ var exports = {},
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-  var thing = {};
+  var thing = null;
 
   var another = _anotherDew();
 
   exports.y = function p() {
-    return {};
+    return null;
   };
 
   return exports;

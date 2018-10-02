@@ -5,7 +5,7 @@ export function dew() {
   _dewExec = true;
 
   try {
-    var supportsColor = require('supports-color');
+    var supportsColor = null;
 
     if (supportsColor) {
       console.log('has supports color');

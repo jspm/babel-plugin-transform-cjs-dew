@@ -10,10 +10,8 @@ module.exports = function ({ types: t }) {
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
   const requireSub = (dep) => {
-    if (dep === undefined)
-      return t.nullLiteral();
     if (dep === null)
-      return t.objectExpression([]);
+      return t.nullLiteral();
     return dep.dew ? t.callExpression(dep.id, []) : dep.id;
   };
   const moduleDeclarator = t.variableDeclaration('var', [
@@ -142,7 +140,7 @@ module.exports = function ({ types: t }) {
     // apply resolver
     
     if (depResolved === null) {
-      return requireSub(null);
+      return requireSub(depResolved);
     }
     else {
       depModule = depResolved || depModule;
@@ -488,8 +486,7 @@ module.exports = function ({ types: t }) {
         if (identifierName === 'require' && !path.scope.hasBinding('require')) {
           let parentPath = path.parentPath;
           if (t.isCallExpression(parentPath) && parentPath.node.callee === path.node) {
-            if (!isOptionalRequire(parentPath))
-              parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0]));
+            parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0]));
           }
           else {
             // dynamic require -> null literal
@@ -529,8 +526,7 @@ module.exports = function ({ types: t }) {
               // require alternative
               case 'require':
                 if (t.isCallExpression(parentPath.parent) && parentPath.parent.callee === parentPath.node) {
-                  if (!isOptionalRequire(parentPath))
-                    parentPath.parentPath.replaceWith(addDependency(parentPath, state, parentPath.parent.arguments[0]));
+                  parentPath.parentPath.replaceWith(addDependency(parentPath, state, parentPath.parent.arguments[0]));
                 }
                 else {
                   state.usesDynamicRequire = true;

@@ -6,7 +6,7 @@ export function dew() {
   var x;
 
   try {
-    x = require('x');
+    x = null;
   } catch (e) {}
 
   if (x) console.log('Have optional');else console.log('No optional');
