@@ -22,6 +22,14 @@ module.exports = function ({ types: t }) {
     ]))
   ]);
 
+  // we detect optional require based on pattern matching:
+  // try { const x = require('x') } catch (e) {/*empty*/}
+  function isOptionalRequire (path) {
+    const secondParent = path.parentPath && path.parentPath.parentPath;
+    const fourthParent = secondParent.parentPath && secondParent.parentPath.parentPath;
+    return secondParent && fourthParent && (t.isVariableDeclarator(secondParent.node) || t.isExpressionStatement(secondParent.node)) && t.isTryStatement(fourthParent.node);
+  }
+
   const cjsScopeVars = ['require', 'module', 'exports', '__filename', '__dirname'];
 
   // given a string literal expression
@@ -478,7 +486,8 @@ module.exports = function ({ types: t }) {
         if (identifierName === 'require' && !path.scope.hasBinding('require')) {
           let parentPath = path.parentPath;
           if (t.isCallExpression(parentPath) && parentPath.node.callee === path.node) {
-            parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0]));
+            if (!isOptionalRequire(parentPath))
+              parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0]));
           }
           else {
             // dynamic require -> null literal
@@ -517,10 +526,13 @@ module.exports = function ({ types: t }) {
               break;
               // require alternative
               case 'require':
-                if (t.isCallExpression(parentPath.parent) && parentPath.parent.callee === parentPath.node)
-                  parentPath.parentPath.replaceWith(addDependency(parentPath, state, parentPath.parent.arguments[0]));
-                else
+                if (t.isCallExpression(parentPath.parent) && parentPath.parent.callee === parentPath.node) {
+                  if (!isOptionalRequire(parentPath))
+                    parentPath.parentPath.replaceWith(addDependency(parentPath, state, parentPath.parent.arguments[0]));
+                }
+                else {
                   state.usesDynamicRequire = true;
+                }
               break;
               case 'exports':
                 if (!path.scope.hasBinding('exports')) {
