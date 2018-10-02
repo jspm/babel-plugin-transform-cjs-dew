@@ -10,7 +10,7 @@ module.exports = function ({ types: t }) {
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
   const requireSub = (dep) => {
-    if (dep === null)
+    if (dep === undefined || dep === null)
       return t.nullLiteral();
     return dep.dew ? t.callExpression(dep.id, []) : dep.id;
   };
