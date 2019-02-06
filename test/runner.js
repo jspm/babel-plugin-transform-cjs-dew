@@ -14,6 +14,7 @@ describe('Transformations', () => {
       const exceptionPath = path.join(fixtureDir, 'exception.txt');
 
       const options = {
+        sourceType: 'script',
         babelrc: false,
         parserOpts: {
           allowReturnOutsideFunction: true

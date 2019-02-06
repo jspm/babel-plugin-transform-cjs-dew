@@ -666,6 +666,9 @@ module.exports = function ({ types: t }) {
             .push(path.get('argument'));
           }
         }
+        if (path.node.operator === 'delete' && t.isIdentifier(path.node.argument)) {
+          path.remove();
+        }
       }
     }
   };
