@@ -311,6 +311,52 @@ module.exports = function ({ types: t }) {
           state.usesDynamicRequire = false;
           state.moduleDotExports = [];
           state.inserting = false;
+
+          if (path.node.body.length !== 1 ||
+              !t.isExpressionStatement(path.node.body[0]) ||
+              !t.isCallExpression(path.node.body[0].expression) ||
+              !t.isFunctionExpression(path.node.body[0].expression.callee) ||
+              path.node.body[0].expression.arguments.length !== 1)
+            return;
+          const arg = path.node.body[0].expression.arguments[0];
+          if (!t.isConditionalExpression(arg) ||
+              !t.isLogicalExpression(arg.test, { operator: '&&' }) ||
+              !t.isBinaryExpression(arg.test.left, { operator: '===' }) ||
+              !t.isUnaryExpression(arg.test.left.left, { operator: 'typeof' }) ||
+              !t.isIdentifier(arg.test.left.left.argument, { name: 'define' }) ||
+              !t.isStringLiteral(arg.test.left.right, { value: 'function' }) ||
+              !t.isMemberExpression(arg.test.right, { computed: false }) ||
+              !t.isIdentifier(arg.test.right.object) ||
+              !t.isIdentifier(arg.test.right.property, { name: 'amd' }) ||
+              !t.isFunctionExpression(arg.alternate) ||
+              arg.alternate.params.length !== 1 ||
+              !t.isIdentifier(arg.alternate.params[0]) ||
+              !t.isExpressionStatement(arg.alternate.body.body[0]) ||
+              !t.isAssignmentExpression(arg.alternate.body.body[0].expression, { operator: '=' }))
+            return;
+          const expr = arg.alternate.body.body[0].expression;
+          if (!t.isMemberExpression(expr.left, { computed: false }) ||
+              !t.isIdentifier(expr.left.object, { name: 'module' }) ||
+              !t.isIdentifier(expr.left.property, { name: 'exports' }) ||
+              !t.isCallExpression(expr.right) ||
+              !t.isIdentifier(expr.right.callee, { name: arg.alternate.params[0].name }) ||
+              expr.right.arguments.length !== 1 ||
+              !t.isIdentifier(expr.right.arguments[0], { name: 'require' }))
+            return;
+          let strictBody = t.isExpressionStatement(path.node.body[0].expression.callee.body.body[0]) &&
+              t.isStringLiteral(path.node.body[0].expression.callee.body.body[0].expression, { value: 'use strict' });
+          if (path.node.body[0].expression.callee.body.body.length !== strictBody + 1)
+            return;
+          const fn = path.node.body[0].expression.callee.body.body[+strictBody];
+          if (!t.isExpressionStatement(fn) ||
+              !t.isCallExpression(fn.expression) ||
+              !t.isIdentifier(fn.expression.callee, { name: arg.test.right.object.name }) ||
+              fn.expression.arguments.length !== 1 ||
+              !t.isFunctionExpression(fn.expression.arguments[0]) ||
+              fn.expression.arguments[0].params.length !== 1 ||
+              !t.isIdentifier(fn.expression.arguments[0].params[0], { name: 'require' }))
+            return;
+          path.get('body.0.expression.callee.body.body.' + +strictBody + '.expression.arguments.0.params.0').remove();
         },
         exit (path, state) {
           state.functionDepth = -1;
