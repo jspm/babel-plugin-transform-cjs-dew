@@ -29,7 +29,10 @@ require('babel-core').transform('<source>', {
       // return a string or array or null to indicate no resolution
       resolveWildcard (name) {
 
-      }
+      },
+      // when a wildcard ends in *, permit automatic extension variations
+      // in the conditional expression output
+      wildcardExtensions: ['.js'],
       // optional support for ESM dependencies with default export
       esmDependencies (resolved) {
         return resolved.endsWith('.mjs');
@@ -92,6 +95,7 @@ The remaining strict conversion cases that don't convert are then just the edge 
 * Assigning to reserved names
 * Using eval to define variables
 * Expecting `this` being the global as the default context for function calls
+* `delete` statements of local variables are removed
 
 The above should comprehensively cover the failure cases.
 

@@ -113,10 +113,18 @@ module.exports = function ({ types: t }) {
 
         const exprIds = exprs.map((_expr, i) => t.Identifier('e' + (i === 0 ? '' : i + 1)));
 
+        // trailing * means we must permit wildcardExtensions variations
+        const wildcardExtensions = depModule.endsWith('*') && state.opts.wildcardExtensions;
+
         const regEx = new RegExp(depModule.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '(.*)'));
         const matchExprs = depResolved.map(resolved => {
           const match = resolved.match(regEx);
-          return exprs.map((_expr, i) => t.binaryExpression('===', exprIds[i], t.stringLiteral(match[i + 1]))).reduce((reduction, next) => {
+          return exprs.map((_expr, i) => t.binaryExpression('===', exprIds[i], t.stringLiteral(match[i + 1]))).reduce((reduction, next, i) => {
+            if (i === exprs.length - 1 && wildcardExtensions) {
+              const ext = wildcardExtensions.find(ext => match[i + 1].endsWith(ext));
+              if (ext)
+                next = t.logicalExpression('||', next, t.binaryExpression('===', exprIds[i], t.stringLiteral(match[i + 1].substr(0, match[i + 1].length - ext.length))));
+            }
             if (reduction)
               return t.logicalExpression('&&', reduction, next);
             return next;
