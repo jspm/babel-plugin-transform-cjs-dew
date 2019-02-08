@@ -30,26 +30,26 @@ module.exports = function ({ types: t }) {
         (t.isVariableDeclaration(secondParent.node) || t.isExpressionStatement(secondParent.node)) && t.isTryStatement(fourthParent.node) && fourthParent.node.handler.body.body.length === 0;
   }
 
-  const cjsScopeVars = ['require', 'module', 'exports', '__filename', '__dirname'];
-
   // given a string literal expression
   // partially resolve the leading part if a string literal
-  function partialResolve (expr, resolve, isRequireResolve) {
+  function partialResolve (expr, resolve) {
     if (t.isStringLiteral(expr)) {
-      return t.stringLiteral(resolve(expr.value, isRequireResolve) || expr.value);
+      return t.stringLiteral(resolve(expr.value, true) || expr.value);
     }
     else if (t.isTemplateLiteral(expr)) {
-      let partialResolve = resolve(expr.quasis[0].value.cooked, isRequireResolve) || expr.quasis[0].value.cooked;
+      let partialResolve = resolve(expr.quasis[0].value.cooked, true) || expr.quasis[0].value.cooked;
       expr.quasis[0] = t.templateElement({
         raw: partialResolve
       });
       return expr;
     }
     else if (t.isBinaryExpression(expr) && expr.operator === '+' && t.isStringLiteral(expr.left)) {
-      expr.left.value = resolve(expr.left.value, isRequireResolve);
+      expr.left.value = resolve(expr.left.value, true);
     }
     return expr;
   }
+
+  const cjsScopeVars = ['require', 'module', 'exports', '__filename', '__dirname'];
 
   function resolvePartialWildcardString (node, lastIsWildcard, exprs) {
     if (t.isStringLiteral(node))
@@ -109,7 +109,7 @@ module.exports = function ({ types: t }) {
 
       if (depResolved instanceof Array) {
         // add each module as a dependency (still using resolver)
-        const depExprs = depResolved.map(m => addDependency(path, state, t.stringLiteral(state.opts.resolve ? state.opts.resolve(m, false) || m : m)));
+        const depExprs = depResolved.map(m => addDependency(path, state, t.stringLiteral(state.opts.resolve ? state.opts.resolve(m) || m : m)));
 
         const exprIds = exprs.map((_expr, i) => t.Identifier('e' + (i === 0 ? '' : i + 1)));
 
@@ -142,7 +142,7 @@ module.exports = function ({ types: t }) {
       depModule = depResolved;
     }
     
-    depResolved = state.opts.resolve ? state.opts.resolve(depModule, false) : depModule;
+    depResolved = state.opts.resolve ? state.opts.resolve(depModule) : depModule;
 
     let depName = path.scope.getProgramParent().generateUidIdentifier(depModule).name;
 
@@ -317,6 +317,7 @@ module.exports = function ({ types: t }) {
           state.usesGlobal = false;
           state.redefinesSelfOrGlobal = false;
           state.usesModule = false;
+          state.requireResolveBinding = undefined;
           state.usesDynamicRequire = false;
           state.moduleDotExports = [];
           state.inserting = false;
@@ -409,6 +410,17 @@ module.exports = function ({ types: t }) {
             );
           });
 
+          /*
+           * Add require resolve binding
+           */
+          if (state.requireResolveBinding) {
+            dewBodyWrapper.push(
+              t.importDeclaration([
+                t.importDefaultSpecifier(state.requireResolveBinding)
+              ], t.StringLiteral(state.opts.requireResolveModule))
+            );
+          }
+
           const execIdentifier = path.scope.generateUidIdentifier('dewExec');
 
           dewBodyWrapper.push(t.variableDeclaration('var', [
@@ -475,9 +487,16 @@ module.exports = function ({ types: t }) {
           switch (name) {
             case 'resolve':
               if (t.isCallExpression(path.parent) && path.parent.callee === path.node &&
-                  path.parent.arguments.length === 1 && state.opts.resolve) {
-                let resolveArgPath = path.parentPath.get('arguments.0');
-                path.parentPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.resolve, true));
+                  path.parent.arguments.length === 1) {
+                if (state.opts.requireResolveModule) {
+                  if (!state.requireResolveBinding)
+                    state.requireResolveBinding = path.scope.getProgramParent().generateUidIdentifier('resolve');
+                  path.replaceWith(state.requireResolveBinding);
+                }
+                else {
+                  let resolveArgPath = path.parentPath.get('arguments.0');
+                  path.parentPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.resolve));
+                }
               }
             break;
             case 'main':

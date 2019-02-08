@@ -28,11 +28,13 @@ require('babel-core').transform('<source>', {
       // returns require('./' + x + '.js') as './*.js'
       // return a string or array or null to indicate no resolution
       resolveWildcard (name) {
-
       },
       // when a wildcard ends in *, permit automatic extension variations
       // in the conditional expression output
       wildcardExtensions: ['.js'],
+      // instead of partially resolving require.resolve, when set this
+      // replaces the require.resolve call to a call to the given module
+      dynamicResolveModule: 'require-resolve',
       // optional support for ESM dependencies with default export
       esmDependencies (resolved) {
         return resolved.endsWith('.mjs');
