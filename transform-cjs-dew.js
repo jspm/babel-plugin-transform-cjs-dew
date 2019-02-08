@@ -36,10 +36,10 @@ module.exports = function ({ types: t }) {
   // partially resolve the leading part if a string literal
   function partialResolve (expr, resolve, isRequireResolve) {
     if (t.isStringLiteral(expr)) {
-      return t.stringLiteral(resolve(expr.value, isRequireResolve));
+      return t.stringLiteral(resolve(expr.value, isRequireResolve) || expr.value);
     }
     else if (t.isTemplateLiteral(expr)) {
-      let partialResolve = resolve(expr.quasis[0].value.cooked, isRequireResolve);
+      let partialResolve = resolve(expr.quasis[0].value.cooked, isRequireResolve) || expr.quasis[0].value.cooked;
       expr.quasis[0] = t.templateElement({
         raw: partialResolve
       });
@@ -121,9 +121,10 @@ module.exports = function ({ types: t }) {
           const match = resolved.match(regEx);
           return exprs.map((_expr, i) => t.binaryExpression('===', exprIds[i], t.stringLiteral(match[i + 1]))).reduce((reduction, next, i) => {
             if (i === exprs.length - 1 && wildcardExtensions) {
-              const ext = wildcardExtensions.find(ext => match[i + 1].endsWith(ext));
+              const str = match[i + 1];
+              const ext = wildcardExtensions.find(ext => str.endsWith(ext));
               if (ext)
-                next = t.logicalExpression('||', next, t.binaryExpression('===', exprIds[i], t.stringLiteral(match[i + 1].substr(0, match[i + 1].length - ext.length))));
+                next = t.logicalExpression('||', next, t.binaryExpression('===', exprIds[i], t.stringLiteral(str.substr(0, str.length - ext.length))));
             }
             if (reduction)
               return t.logicalExpression('&&', reduction, next);
