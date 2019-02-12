@@ -91,6 +91,10 @@ module.exports = function ({ types: t }) {
     return lastIsWildcard ? '' : '*';
   }
 
+  function canResolvePartialWildcardString (node) {
+    return t.isStringLiteral(node) || t.isTemplateLiteral(node) && node.quasis[0].value.cooked.length || t.isBinaryExpression(node) || t.isIdentifier(node) && node.name === '__dirname';
+  }
+
   function addDependency (path, state, depModuleArg) {
     const exprs = [];
     let depModule = resolvePartialWildcardString(depModuleArg, false, exprs);
@@ -560,7 +564,25 @@ module.exports = function ({ types: t }) {
         if (identifierName === 'require' && !path.scope.hasBinding('require')) {
           let parentPath = path.parentPath;
           if (t.isCallExpression(parentPath) && parentPath.node.callee === path.node) {
-            parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0]));
+            const parentParentNode = parentPath.parentPath && parentPath.parentPath.node;
+            // Promise.resolve(require(dyn)) -> Promise.resolve(import(dyn))
+            if (t.isCallExpression(parentParentNode) &&
+                parentParentNode.arguments.length === 1 &&
+                parentParentNode.arguments[0] === parentPath.node &&
+                t.isMemberExpression(parentParentNode.callee) &&
+                t.isIdentifier(parentParentNode.callee.object, { name: 'Promise' }) &&
+                t.isIdentifier(parentParentNode.callee.property, { name: 'resolve' }) &&
+                !canResolvePartialWildcardString(parentPath.node.arguments[0])) {
+              parentPath.replaceWith(
+                t.callExpression(
+                  t.memberExpression(t.callExpression(t.import(), parentPath.node.arguments), t.identifier('then')),
+                  [t.arrowFunctionExpression([t.identifier('m')], t.memberExpression(t.identifier('m'), t.identifier('default')))]
+                )
+              );
+            }
+            else {
+              parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0]));
+            }
           }
           else {
             // dynamic require -> null literal
