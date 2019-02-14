@@ -619,7 +619,7 @@ module.exports = function ({ types: t }) {
                 parentPath.replaceWith(t.objectExpression([]));
               break;
               case 'paths':
-                parentPath.replaceWith(t.objectExpression([]));
+                parentPath.replaceWith(t.arrayExpression([]));
               break;
               // require alternative
               case 'require':

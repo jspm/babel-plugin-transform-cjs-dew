@@ -10,3 +10,4 @@ console.log(module.filename);
 console.log(module['id']);
 
 module.require('x');
+module.paths.push('asdf');
