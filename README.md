@@ -34,7 +34,9 @@ require('babel-core').transform('<source>', {
       wildcardExtensions: ['.js'],
       // instead of partially resolving require.resolve, when set this
       // replaces the require.resolve call to a call to the given module
-      dynamicResolveModule: 'require-resolve',
+      requireResolveModule: 'require-resolve',
+      // optional export name for requireResolveModule
+      requireResolveExport: 'resolve',
       // optional support for ESM dependencies with default export
       esmDependencies (resolved) {
         return resolved.endsWith('.mjs');

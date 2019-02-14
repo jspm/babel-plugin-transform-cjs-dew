@@ -1,3 +1,4 @@
 module.exports = {
-  requireResolveModule: 'dynamic-resolve'
+  requireResolveModule: 'dynamic-resolve',
+  requireResolveExport: 'test'
 };

@@ -1,4 +1,4 @@
-import _resolve from "dynamic-resolve";
+import { test as _resolve } from "dynamic-resolve";
 var exports = {},
     _dewExec = false;
 export function dew() {

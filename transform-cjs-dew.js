@@ -420,7 +420,9 @@ module.exports = function ({ types: t }) {
           if (state.requireResolveBinding) {
             dewBodyWrapper.push(
               t.importDeclaration([
-                t.importDefaultSpecifier(state.requireResolveBinding)
+                state.opts.requireResolveExport
+                ? t.importSpecifier(state.requireResolveBinding, t.identifier(state.opts.requireResolveExport))
+                : t.importDefaultSpecifier(state.requireResolveBinding)
               ], t.StringLiteral(state.opts.requireResolveModule))
             );
           }
