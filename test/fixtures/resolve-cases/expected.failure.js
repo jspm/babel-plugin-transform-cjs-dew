@@ -10,7 +10,10 @@ export function dew() {
     throw e;
   }
 
-  var x = _notFound;
-  x('asdf');
+  "/base/x";
+  `/base/x`;
+  `/base/x/${thing}`;
+  "/x" + '/y';
+  x;
   return exports;
 }

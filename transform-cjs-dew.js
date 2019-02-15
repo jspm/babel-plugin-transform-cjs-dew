@@ -10,9 +10,12 @@ module.exports = function ({ types: t }) {
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
   const requireSub = (dep) => {
-    if (dep === undefined || dep === null)
-      return t.nullLiteral();
     return dep.dew ? t.callExpression(dep.id, []) : dep.id;
+  };
+  const notFoundCall = (path, state, depNode) => {
+    if (!state.notFoundBinding)
+      state.notFoundBinding = path.scope.getProgramParent().generateUidIdentifier('notFound');
+    return t.callExpression(state.notFoundBinding, [depNode]);
   };
   const moduleDeclarator = t.variableDeclaration('var', [
     t.variableDeclarator(moduleIdentifier, t.objectExpression([
@@ -100,8 +103,9 @@ module.exports = function ({ types: t }) {
     let depModule = resolvePartialWildcardString(depModuleArg, false, exprs);
 
     // no support for fully dynamic require
-    if (depModule === '*')
-      return requireSub(undefined);
+    if (depModule === '*') {
+      return notFoundCall(path, state, depModuleArg);
+    }
 
     let depResolved;
 
@@ -109,7 +113,7 @@ module.exports = function ({ types: t }) {
       depResolved = state.opts.resolveWildcard ? state.opts.resolveWildcard(depModule) : null;
 
       if (!depResolved)
-        return requireSub(undefined);
+        return notFoundCall(path, state, depModuleArg);
 
       if (depResolved instanceof Array) {
         // add each module as a dependency (still using resolver)
@@ -153,13 +157,13 @@ module.exports = function ({ types: t }) {
     // apply resolver
     
     if (depResolved === null) {
-      return requireSub(depResolved);
+      return notFoundCall(path, state, depModuleArg);
     }
     else {
       depModule = depResolved || depModule;
       for (let dep of state.deps) {
         if (dep.literal.value === depModule)
-          return requireSub(dep);
+          return requireSub(dep, state);
       }
       let dew = true;
       if (state.opts.esmDependencies && state.opts.esmDependencies(depModule))
@@ -170,7 +174,7 @@ module.exports = function ({ types: t }) {
         dew
       };
       state.deps.push(dep)
-      return requireSub(dep);
+      return requireSub(dep, state);
     }
   }
 
@@ -325,6 +329,7 @@ module.exports = function ({ types: t }) {
           state.usesDynamicRequire = false;
           state.moduleDotExports = [];
           state.inserting = false;
+          state.notFoundBinding = false;
 
           if (path.node.body.length !== 1 ||
               !t.isExpressionStatement(path.node.body[0]) ||
@@ -371,6 +376,7 @@ module.exports = function ({ types: t }) {
               !t.isIdentifier(fn.expression.arguments[0].params[0], { name: 'require' }))
             return;
           path.get('body.0.expression.callee.body.body.' + +strictBody + '.expression.arguments.0.params.0').remove();
+          path.get('body.0.expression.arguments.0.alternate.body.body.0.expression.right.arguments.0').remove();
         },
         exit (path, state) {
           state.functionDepth = -1;
@@ -402,6 +408,23 @@ module.exports = function ({ types: t }) {
           }
 
           /*
+           * Inline notFound function
+           */
+          if (state.notFoundBinding) {
+            const e = t.identifier('e');
+            const id = t.identifier('id');
+            path.unshiftContainer('body', t.functionDeclaration(state.notFoundBinding, [id], t.blockStatement([
+              t.variableDeclaration('var', [
+                t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
+                  t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
+                ]))
+              ]),
+              t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
+              t.throwStatement(e)
+            ])));
+          }
+
+          /*
            * Construct the full body wrapper
            */
           let dewBodyWrapper = [];
@@ -423,7 +446,7 @@ module.exports = function ({ types: t }) {
                 state.opts.requireResolveExport
                 ? t.importSpecifier(state.requireResolveBinding, t.identifier(state.opts.requireResolveExport))
                 : t.importDefaultSpecifier(state.requireResolveBinding)
-              ], t.StringLiteral(state.opts.requireResolveModule))
+              ], t.stringLiteral(state.opts.requireResolveModule))
             );
           }
 
@@ -512,6 +535,8 @@ module.exports = function ({ types: t }) {
             case 'cache':
               path.replaceWith(t.objectExpression([]));
             break;
+            default:
+              path.replaceWith(t.identifier('undefined'));
           }
         }
       },
@@ -587,9 +612,14 @@ module.exports = function ({ types: t }) {
             }
           }
           else {
-            // dynamic require -> null literal
-            path.replaceWith(t.nullLiteral());
-            dce(path);
+            // dynamic require -> not found error
+            // path.replaceWith(t.nullLiteral());
+            // dce(path);
+            if (!t.isMemberExpression(path.parentPath) || path.parentPath.node.object !== path.node) {
+              if (!state.notFoundBinding)
+                state.notFoundBinding = path.scope.getProgramParent().generateUidIdentifier('notFound');
+              path.replaceWith(state.notFoundBinding);
+            }
           }
         }
         else if (!state.hasProcess && identifierName === 'process' && !path.scope.hasBinding('process')) {
