@@ -459,7 +459,10 @@ module.exports = function ({ types: t }) {
                       ])
                     ])
                   )),
-                  t.returnStatement(t.memberExpression(m, t.identifier('require')))
+                  t.returnStatement(t.callExpression(
+                    t.memberExpression(t.memberExpression(m, t.identifier('require')), t.identifier('bind')),
+                    [m]
+                  ))
                 ]))
               ])), []))
             ]));

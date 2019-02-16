@@ -13,7 +13,7 @@ export function dew() {
       var m = new Module("");
       m.filename = import.meta.url.substr(7 + (_processDew().platform === "win32"));
       m.paths = Module._nodeModulePaths(m.filename.substr(0, m.filename.lastIndexOf("/")));
-      return m.require;
+      return m.require.bind(m);
     }
   }();
 
