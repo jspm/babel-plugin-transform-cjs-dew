@@ -102,6 +102,14 @@ module.exports = function ({ types: t }) {
     const exprs = [];
     let depModule = resolvePartialWildcardString(depModuleArg, false, exprs);
 
+    // .node addons use nodeRequire
+    if (depModule.endsWith('.node')) {
+      if (!state.nodeRequireBinding)
+        state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier('nodeRequire');
+      path.replaceWith(state.nodeRequireBinding);
+      return t.callExpression(state.nodeRequireBinding, [depModuleArg]);
+    }
+
     // no support for fully dynamic require
     if (depModule === '*') {
       return notFoundCall(path, state, depModuleArg);
@@ -329,7 +337,8 @@ module.exports = function ({ types: t }) {
           state.usesDynamicRequire = false;
           state.moduleDotExports = [];
           state.inserting = false;
-          state.notFoundBinding = false;
+          state.notFoundBinding = undefined;
+          state.nodeRequireBinding = undefined;
 
           if (path.node.body.length !== 1 ||
               !t.isExpressionStatement(path.node.body[0]) ||
@@ -404,6 +413,35 @@ module.exports = function ({ types: t }) {
             let dep = addDependency(path, state, t.stringLiteral('buffer'));
             path.unshiftContainer('body', t.variableDeclaration('var', [
               t.variableDeclarator(t.identifier('Buffer'), t.memberExpression(dep, t.identifier('Buffer')))
+            ]));
+          }
+
+          /*
+           * nodeRequire special cases
+           */
+          if (state.nodeRequireBinding) {
+            const process = addDependency(path, state, t.stringLiteral('process'));
+            const module = addDependency(path, state, t.stringLiteral('module'));
+            const Module = t.identifier('Module');
+            const m = t.identifier('m');
+            path.unshiftContainer('body', t.variableDeclaration('var', [
+              t.variableDeclarator(state.nodeRequireBinding, t.callExpression(t.functionExpression(null, [], t.blockStatement([
+                t.variableDeclaration('var', [
+                  t.variableDeclarator(Module, t.memberExpression(module, Module))
+                ]),
+                t.ifStatement(Module, t.blockStatement([
+                  t.variableDeclaration('var', [
+                    t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral(''), t.nullLiteral()]))
+                  ]),
+                  t.expressionStatement(t.assignmentExpression('=',
+                    t.memberExpression(m, t.identifier('paths')),
+                    t.callExpression(t.memberExpression(Module, t.identifier('_nodeModulePaths')), [
+                      t.callExpression(t.memberExpression(process, t.identifier('cwd')), [])
+                    ])
+                  )),
+                  t.returnStatement(t.memberExpression(m, t.identifier('require')))
+                ]))
+              ])), []))
             ]));
           }
 
@@ -621,6 +659,11 @@ module.exports = function ({ types: t }) {
               path.replaceWith(state.notFoundBinding);
             }
           }
+        }
+        else if (identifierName === '__non_webpack_require__') {
+          if (!state.nodeRequireBinding)
+            state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier('nodeRequire');
+          path.replaceWith(state.nodeRequireBinding);
         }
         else if (!state.hasProcess && identifierName === 'process' && !path.scope.hasBinding('process')) {
           state.hasProcess = true;
