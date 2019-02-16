@@ -420,10 +420,11 @@ module.exports = function ({ types: t }) {
            * nodeRequire special cases
            */
           if (state.nodeRequireBinding) {
-            const process = addDependency(path, state, t.stringLiteral('process'));
             const module = addDependency(path, state, t.stringLiteral('module'));
+            const process = addDependency(path, state, t.stringLiteral('process'));
             const Module = t.identifier('Module');
             const m = t.identifier('m');
+            const filename = t.identifier('filename');
             path.unshiftContainer('body', t.variableDeclaration('var', [
               t.variableDeclarator(state.nodeRequireBinding, t.callExpression(t.functionExpression(null, [], t.blockStatement([
                 t.variableDeclaration('var', [
@@ -431,12 +432,31 @@ module.exports = function ({ types: t }) {
                 ]),
                 t.ifStatement(Module, t.blockStatement([
                   t.variableDeclaration('var', [
-                    t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral(''), t.nullLiteral()]))
+                    t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral('')]))
                   ]),
+                  t.expressionStatement(t.assignmentExpression('=',
+                    t.memberExpression(m, filename),
+                    t.callExpression(
+                      t.memberExpression(t.memberExpression(
+                        t.metaProperty(t.identifier('import'), t.identifier('meta')),
+                        t.identifier('url')
+                      ), t.identifier('substr')),
+                      [t.binaryExpression('+',
+                        t.numericLiteral(7),
+                        t.binaryExpression('===',
+                          t.memberExpression(process, t.identifier('platform')),
+                          t.stringLiteral('win32')
+                        )
+                      )]
+                    )
+                  )),
                   t.expressionStatement(t.assignmentExpression('=',
                     t.memberExpression(m, t.identifier('paths')),
                     t.callExpression(t.memberExpression(Module, t.identifier('_nodeModulePaths')), [
-                      t.callExpression(t.memberExpression(process, t.identifier('cwd')), [])
+                      t.callExpression(t.memberExpression(t.memberExpression(m, filename), t.identifier('substr')), [
+                        t.numericLiteral(0),
+                        t.callExpression(t.memberExpression(t.memberExpression(m, filename), t.identifier('lastIndexOf')), [t.stringLiteral('/')])
+                      ])
                     ])
                   )),
                   t.returnStatement(t.memberExpression(m, t.identifier('require')))

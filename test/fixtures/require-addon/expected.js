@@ -1,5 +1,5 @@
-import { dew as _processDew } from "process";
 import { dew as _moduleDew } from "module";
+import { dew as _processDew } from "process";
 var exports = {},
     _dewExec = false;
 export function dew() {
@@ -10,8 +10,9 @@ export function dew() {
     var Module = _moduleDew().Module;
 
     if (Module) {
-      var m = new Module("", null);
-      m.paths = Module._nodeModulePaths(_processDew().cwd());
+      var m = new Module("");
+      m.filename = import.meta.url.substr(7 + (_processDew().platform === "win32"));
+      m.paths = Module._nodeModulePaths(m.filename.substr(0, m.filename.lastIndexOf("/")));
       return m.require;
     }
   }();
