@@ -12,10 +12,10 @@ module.exports = function ({ types: t }) {
   const requireSub = (dep) => {
     return dep.dew ? t.callExpression(dep.id, []) : dep.id;
   };
-  const notFoundCall = (path, state, depNode) => {
-    if (!state.notFoundBinding)
-      state.notFoundBinding = path.scope.getProgramParent().generateUidIdentifier('notFound');
-    return t.callExpression(state.notFoundBinding, [depNode]);
+  const nodeRequire = (path, state, depNode) => {
+    if (!state.nodeRequireBinding)
+      state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier('nodeRequire');
+    return t.callExpression(state.nodeRequireBinding, [depNode]);
   };
   const moduleDeclarator = t.variableDeclaration('var', [
     t.variableDeclarator(moduleIdentifier, t.objectExpression([
@@ -112,7 +112,7 @@ module.exports = function ({ types: t }) {
 
     // no support for fully dynamic require
     if (depModule === '*') {
-      return notFoundCall(path, state, depModuleArg);
+      return nodeRequire(path, state, depModuleArg);
     }
 
     let depResolved;
@@ -121,7 +121,7 @@ module.exports = function ({ types: t }) {
       depResolved = state.opts.resolveWildcard ? state.opts.resolveWildcard(depModule) : null;
 
       if (!depResolved)
-        return notFoundCall(path, state, depModuleArg);
+        return nodeRequire(path, state, depModuleArg);
 
       if (depResolved instanceof Array) {
         // add each module as a dependency (still using resolver)
@@ -165,7 +165,7 @@ module.exports = function ({ types: t }) {
     // apply resolver
     
     if (depResolved === null) {
-      return notFoundCall(path, state, depModuleArg);
+      return nodeRequire(path, state, depModuleArg);
     }
     else {
       depModule = depResolved || depModule;
@@ -337,7 +337,6 @@ module.exports = function ({ types: t }) {
           state.usesDynamicRequire = false;
           state.moduleDotExports = [];
           state.inserting = false;
-          state.notFoundBinding = undefined;
           state.nodeRequireBinding = undefined;
 
           if (path.node.body.length !== 1 ||
@@ -420,10 +419,13 @@ module.exports = function ({ types: t }) {
            * nodeRequire special cases
            */
           if (state.nodeRequireBinding) {
-            const module = addDependency(path, state, t.stringLiteral('module'));
-            const process = addDependency(path, state, t.stringLiteral('process'));
+            // TODO: fully support browserOnly here
+            const module = !state.opts.browserOnly && addDependency(path, state, t.stringLiteral('module'));
+            const process = t.identifier('process');
             const Module = t.identifier('Module');
             const m = t.identifier('m');
+            const e = t.identifier('e');
+            const id = t.identifier('id');
             const filename = t.identifier('filename');
             path.unshiftContainer('body', t.variableDeclaration('var', [
               t.variableDeclarator(state.nodeRequireBinding, t.callExpression(t.functionExpression(null, [], t.blockStatement([
@@ -432,7 +434,10 @@ module.exports = function ({ types: t }) {
                 ]),
                 t.ifStatement(Module, t.blockStatement([
                   t.variableDeclaration('var', [
-                    t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral('')]))
+                    t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral('')])),
+                    t.variableDeclarator(process, t.callExpression(t.memberExpression(m, t.identifier('require')), [
+                      t.stringLiteral('process')
+                    ]))
                   ]),
                   t.expressionStatement(t.assignmentExpression('=',
                     t.memberExpression(m, filename),
@@ -463,26 +468,19 @@ module.exports = function ({ types: t }) {
                     t.memberExpression(t.memberExpression(m, t.identifier('require')), t.identifier('bind')),
                     [m]
                   ))
+                ]), t.blockStatement([
+                  t.returnStatement(t.functionExpression(null, [id], t.blockStatement([
+                    t.variableDeclaration('var', [
+                      t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
+                        t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
+                      ]))
+                    ]),
+                    t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
+                    t.throwStatement(e)  
+                  ])))
                 ]))
               ])), []))
             ]));
-          }
-
-          /*
-           * Inline notFound function
-           */
-          if (state.notFoundBinding) {
-            const e = t.identifier('e');
-            const id = t.identifier('id');
-            path.unshiftContainer('body', t.functionDeclaration(state.notFoundBinding, [id], t.blockStatement([
-              t.variableDeclaration('var', [
-                t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
-                  t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
-                ]))
-              ]),
-              t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
-              t.throwStatement(e)
-            ])));
           }
 
           /*
@@ -673,13 +671,13 @@ module.exports = function ({ types: t }) {
             }
           }
           else {
-            // dynamic require -> not found error
+            // dynamic require -> node require
             // path.replaceWith(t.nullLiteral());
             // dce(path);
             if (!t.isMemberExpression(path.parentPath) || path.parentPath.node.object !== path.node) {
-              if (!state.notFoundBinding)
-                state.notFoundBinding = path.scope.getProgramParent().generateUidIdentifier('notFound');
-              path.replaceWith(state.notFoundBinding);
+              if (!state.nodeRequireBinding)
+                state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier('nodeRequire');
+              path.replaceWith(state.nodeRequireBinding);
             }
           }
         }

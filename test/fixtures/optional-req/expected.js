@@ -4,16 +4,29 @@ export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
 
-  function _notFound(id) {
-    var e = new Error("Cannot find module '" + id + "'");
-    e.code = "MODULE_NOT_FOUND";
-    throw e;
-  }
+  var _nodeRequire = function () {
+    var Module = _nodeRequire("module").Module;
+
+    if (Module) {
+      var m = new Module(""),
+          process = m.require("process");
+
+      m.filename = import.meta.url.substr(7 + (process.platform === "win32"));
+      m.paths = Module._nodeModulePaths(m.filename.substr(0, m.filename.lastIndexOf("/")));
+      return m.require.bind(m);
+    } else {
+      return function (id) {
+        var e = new Error("Cannot find module '" + id + "'");
+        e.code = "MODULE_NOT_FOUND";
+        throw e;
+      };
+    }
+  }();
 
   var x;
 
   try {
-    x = _notFound('x');
+    x = _nodeRequire('x');
   } catch (e) {}
 
   if (x) console.log('Have optional');else console.log('No optional');
