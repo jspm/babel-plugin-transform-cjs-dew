@@ -15,7 +15,7 @@ export function dew() {
       m.paths = Module._nodeModulePaths(m.filename.substr(0, m.filename.lastIndexOf("/")));
       return m.require.bind(m);
     } else {
-      return function (id) {
+      return function _nodeRequire(id) {
         var e = new Error("Cannot find module '" + id + "'");
         e.code = "MODULE_NOT_FOUND";
         throw e;

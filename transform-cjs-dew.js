@@ -2,6 +2,15 @@ const { parse } = require('@babel/parser');
 const { basename, extname } = require('path');
 const stage3Syntax = ['asyncGenerators', 'classProperties', 'optionalCatchBinding', 'objectRestSpread', 'numericSeparator', 'dynamicImport', 'importMeta'];
 
+// possibly have this binding configurable to an import in future
+// (nodeRequireModule, nodeRequireExport)
+// that could support taking import.meta and using import.meta.resolve / import.meta.url
+function getNodeRequireBinding (path, state) {
+  if (!state.nodeRequireBinding)
+    state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier(state.opts.browserOnly ? 'nullRequire' : 'nodeRequire');
+  return state.nodeRequireBinding;
+}
+
 module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
   exportsIdentifier.own = true;
@@ -14,9 +23,7 @@ module.exports = function ({ types: t }) {
     return dep.dew ? t.callExpression(dep.id, []) : dep.id;
   };
   const nodeRequire = (path, state, depNode) => {
-    if (!state.nodeRequireBinding)
-      state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier(state.opts.browserOnly ? 'nullRequire' : 'nodeRequire');
-    return t.callExpression(state.nodeRequireBinding, [depNode]);
+    return t.callExpression(getNodeRequireBinding(path, state), [depNode]);
   };
   const moduleDeclarator = t.variableDeclaration('var', [
     t.variableDeclarator(moduleIdentifier, t.objectExpression([
@@ -33,25 +40,6 @@ module.exports = function ({ types: t }) {
         t.isTryStatement(fourthParent) && fourthParent.node.block.body.length === 1 &&
         (t.isVariableDeclarator(path.parentPath) && t.isVariableDeclaration(secondParent) ||
          t.isAssignmentExpression(path.parentPath) && t.isExpressionStatement(secondParent));
-  }
-
-  // given a string literal expression
-  // partially resolve the leading part if a string literal
-  function partialResolve (expr, resolve) {
-    if (t.isStringLiteral(expr)) {
-      return t.stringLiteral(resolve(expr.value, { requireResolve: true }) || expr.value);
-    }
-    else if (t.isTemplateLiteral(expr)) {
-      let partialResolve = resolve(expr.quasis[0].value.cooked, { requireResolve: true }) || expr.quasis[0].value.cooked;
-      expr.quasis[0] = t.templateElement({
-        raw: partialResolve
-      });
-      return expr;
-    }
-    else if (t.isBinaryExpression(expr) && expr.operator === '+' && t.isStringLiteral(expr.left)) {
-      expr.left.value = resolve(expr.left.value, { requireResolve: true });
-    }
-    return expr;
   }
 
   const cjsScopeVars = ['require', 'module', 'exports', '__filename', '__dirname'];
@@ -336,11 +324,11 @@ module.exports = function ({ types: t }) {
           state.usesGlobal = false;
           state.redefinesSelfOrGlobal = false;
           state.usesModule = false;
-          state.requireResolveBinding = undefined;
           state.usesDynamicRequire = false;
           state.moduleDotExports = [];
           state.inserting = false;
           state.nodeRequireBinding = undefined;
+          state.requireResolve = false;
 
           if (path.node.body.length !== 1 ||
               !t.isExpressionStatement(path.node.body[0]) ||
@@ -425,17 +413,18 @@ module.exports = function ({ types: t }) {
             if (state.opts.browserOnly) {
               const e = t.identifier('e');
               const id = t.identifier('id');
-              path.unshiftContainer('body', t.variableDeclaration('var', [
-                t.variableDeclarator(state.nodeRequireBinding, t.callExpression(t.functionExpression(null, [], t.blockStatement([
-                  t.variableDeclaration('var', [
-                    t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
-                      t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
-                    ]))
-                  ]),
-                  t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
-                  t.throwStatement(e)  
-                ])), []))
-              ]));
+              if (state.requireResolve)
+                path.unshiftContainer('body',
+                    t.expressionStatement(t.assignmentExpression('=', t.memberExpression(state.nodeRequireBinding, t.identifier('resolve')), state.nodeRequireBinding)));
+              path.unshiftContainer('body', t.functionDeclaration(state.nodeRequireBinding, [id], t.blockStatement([
+                t.variableDeclaration('var', [
+                  t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
+                    t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
+                  ]))
+                ]),
+                t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
+                t.throwStatement(e)
+              ])));
             }
             else {
               const module = addDependency(path, state, t.stringLiteral('module'));
@@ -445,6 +434,35 @@ module.exports = function ({ types: t }) {
               const e = t.identifier('e');
               const id = t.identifier('id');
               const filename = t.identifier('filename');
+
+              let requireFn;
+              if (state.requireResolve) {
+                requireFn = [
+                  t.functionDeclaration(state.nodeRequireBinding, [id], t.blockStatement([
+                    t.variableDeclaration('var', [
+                      t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
+                        t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
+                      ]))
+                    ]),
+                    t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
+                    t.throwStatement(e)
+                  ])),
+                  t.expressionStatement(t.assignmentExpression('=', t.memberExpression(state.nodeRequireBinding, t.identifier('resolve')), state.nodeRequireBinding)),
+                  t.returnStatement(state.nodeRequireBinding)
+                ];
+              }
+              else {
+                requireFn = [t.returnStatement(t.functionExpression(state.nodeRequireBinding, [id], t.blockStatement([
+                  t.variableDeclaration('var', [
+                    t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
+                      t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
+                    ]))
+                  ]),
+                  t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
+                  t.throwStatement(e)
+                ])))];
+              }
+
               path.unshiftContainer('body', t.variableDeclaration('var', [
                 t.variableDeclarator(state.nodeRequireBinding, t.callExpression(t.functionExpression(null, [], t.blockStatement([
                   t.variableDeclaration('var', [
@@ -486,17 +504,7 @@ module.exports = function ({ types: t }) {
                       t.memberExpression(t.memberExpression(m, t.identifier('require')), t.identifier('bind')),
                       [m]
                     ))
-                  ]), t.blockStatement([
-                    t.returnStatement(t.functionExpression(null, [id], t.blockStatement([
-                      t.variableDeclaration('var', [
-                        t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
-                          t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
-                        ]))
-                      ]),
-                      t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
-                      t.throwStatement(e)  
-                    ])))
-                  ]))
+                  ]), t.blockStatement(requireFn))
                 ])), []))
               ]));
             }
@@ -514,19 +522,6 @@ module.exports = function ({ types: t }) {
               ], dep.literal)
             );
           });
-
-          /*
-           * Add require resolve binding
-           */
-          if (state.requireResolveBinding) {
-            dewBodyWrapper.push(
-              t.importDeclaration([
-                state.opts.requireResolveExport
-                ? t.importSpecifier(state.requireResolveBinding, t.identifier(state.opts.requireResolveExport))
-                : t.importDefaultSpecifier(state.requireResolveBinding)
-              ], t.stringLiteral(state.opts.requireResolveModule))
-            );
-          }
 
           const execIdentifier = path.scope.generateUidIdentifier('dewExec');
 
@@ -595,17 +590,11 @@ module.exports = function ({ types: t }) {
             case 'resolve':
               if (t.isCallExpression(path.parent) && path.parent.callee === path.node &&
                   path.parent.arguments.length === 1) {
-                if (state.opts.requireResolveModule) {
-                  if (!state.requireResolveBinding)
-                    state.requireResolveBinding = path.scope.getProgramParent().generateUidIdentifier('resolve');
-                  path.replaceWith(state.requireResolveBinding);
-                }
-                else {
-                  let resolveArgPath = path.parentPath.get('arguments.0');
-                  path.parentPath.replaceWith(partialResolve(resolveArgPath.node, state.opts.resolve));
-                }
+                state.requireResolve = true;
+                path.get('object').replaceWith(getNodeRequireBinding(path,  state));
               }
             break;
+            // TODO: require.main === module -> import.meta.main
             case 'main':
               path.replaceWith(t.identifier('undefined'));
             break;
@@ -695,22 +684,13 @@ module.exports = function ({ types: t }) {
             // dce(path);
             if (!t.isMemberExpression(path.parentPath) || path.parentPath.node.object !== path.node) {
               if (!state.opts.browserOnly) {
-                if (!state.nodeRequireBinding)
-                  state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier(state.opts.browserOnly ? 'nullRequire' : 'nodeRequire');
-                path.replaceWith(state.nodeRequireBinding);
+                path.replaceWith(getNodeRequireBinding(path, state));
               }
             }
           }
         }
         else if (identifierName === '__non_webpack_require__') {
-          if (!state.opts.browserOnly) {
-            if (!state.nodeRequireBinding)
-              state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier(state.opts.browserOnly ? 'nullRequire' : 'nodeRequire');
-            path.replaceWith(state.nodeRequireBinding);
-          }
-          else {
-            path.replaceWith(t.identifier('require'));
-          }
+          path.replaceWith(getNodeRequireBinding(path, state));
         }
         else if (!state.hasProcess && identifierName === 'process' && !path.scope.hasBinding('process')) {
           state.hasProcess = true;

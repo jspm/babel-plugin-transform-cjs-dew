@@ -4,11 +4,11 @@ export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
 
-  var _nullRequire = function () {
+  function _nullRequire(id) {
     var e = new Error("Cannot find module '" + id + "'");
     e.code = "MODULE_NOT_FOUND";
     throw e;
-  }();
+  }
 
   var p;
 
