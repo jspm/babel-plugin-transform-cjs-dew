@@ -4,16 +4,25 @@ export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
 
-  function _notFound(id) {
+  var _nullRequire = function () {
     var e = new Error("Cannot find module '" + id + "'");
     e.code = "MODULE_NOT_FOUND";
     throw e;
+  }();
+
+  var p;
+
+  try {
+    p = _nullRequire('unknown');
+  } catch (e) {
+    console.log('IT WAS NOT FOUND!');
   }
 
-  "/base/x";
-  `/base/x`;
-  `/base/x/${thing}`;
-  "/x" + '/y';
-  x;
+  try {
+    var p = _nullRequire('it is not known');
+  } catch (e) {
+    throw e;
+  }
+
   return exports;
 }

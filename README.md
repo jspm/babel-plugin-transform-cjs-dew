@@ -18,17 +18,17 @@ require('babel-core').transform('<source>', {
       define: {
         'process.env.NODE_ENV': '"development"'
       },
-      resolve (name, isRequireResolve) {
+      resolve (name, { wildcard?, requireResolve?, optional? }) {
         if (name === 'process')
           return 'process-path';
         if (name === './x')
           return './x.js';
       },
-      // resolve used specifically for wildcard requires
-      // returns require('./' + x + '.js') as './*.js'
-      // return a string or array or null to indicate no resolution
-      resolveWildcard (name) {
-      },
+      // for wildcard requires, return a string or array or null to indicate unknown resolution
+      // '@empty' indicates an empty object resolution, where all named exports are undefined
+      // by default, a null resolve embeds a Node require through a import 'module' path
+      // browserOnly just inlines the module not found error directly
+      browserOnly: false,
       // when a wildcard ends in *, permit automatic extension variations
       // in the conditional expression output
       wildcardExtensions: ['.js'],

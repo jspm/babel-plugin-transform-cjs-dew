@@ -1,5 +1,5 @@
 module.exports = {
-  resolveWildcard (name) {
+  resolve (name) {
     if (name === './x/*')
       return './x/z'
   }

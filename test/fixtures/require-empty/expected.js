@@ -3,6 +3,8 @@ var exports = {},
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-  var p = 5;
+  const {
+    x
+  } = {};
   return exports;
 }

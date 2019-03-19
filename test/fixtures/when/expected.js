@@ -1,15 +1,15 @@
-import { dew as _libDecoratorsTimedDew } from "./lib/decorators/timed";
-import { dew as _libDecoratorsArrayDew } from "./lib/decorators/array";
-import { dew as _libDecoratorsFlowDew } from "./lib/decorators/flow";
-import { dew as _libDecoratorsFoldDew } from "./lib/decorators/fold";
-import { dew as _libDecoratorsInspectDew } from "./lib/decorators/inspect";
-import { dew as _libDecoratorsIterateDew } from "./lib/decorators/iterate";
-import { dew as _libDecoratorsProgressDew } from "./lib/decorators/progress";
-import { dew as _libDecoratorsWithDew } from "./lib/decorators/with";
-import { dew as _libDecoratorsUnhandledRejectionDew } from "./lib/decorators/unhandledRejection";
-import { dew as _libTimeoutErrorDew } from "./lib/TimeoutError";
-import { dew as _libPromiseDew } from "./lib/Promise";
-import { dew as _libApplyDew } from "./lib/apply";
+import { dew as _timedDew } from "./lib/decorators/timed";
+import { dew as _arrayDew } from "./lib/decorators/array";
+import { dew as _flowDew } from "./lib/decorators/flow";
+import { dew as _foldDew } from "./lib/decorators/fold";
+import { dew as _inspectDew } from "./lib/decorators/inspect";
+import { dew as _iterateDew } from "./lib/decorators/iterate";
+import { dew as _progressDew } from "./lib/decorators/progress";
+import { dew as _withDew } from "./lib/decorators/with";
+import { dew as _unhandledRejectionDew } from "./lib/decorators/unhandledRejection";
+import { dew as _TimeoutErrorDew } from "./lib/TimeoutError";
+import { dew as _PromiseDew } from "./lib/Promise";
+import { dew as _applyDew } from "./lib/apply";
 var exports = {},
     _dewExec = false;
 
@@ -31,31 +31,31 @@ export function dew() {
     'use strict';
 
     define(function () {
-      var timed = _libDecoratorsTimedDew();
+      var timed = _timedDew();
 
-      var array = _libDecoratorsArrayDew();
+      var array = _arrayDew();
 
-      var flow = _libDecoratorsFlowDew();
+      var flow = _flowDew();
 
-      var fold = _libDecoratorsFoldDew();
+      var fold = _foldDew();
 
-      var inspect = _libDecoratorsInspectDew();
+      var inspect = _inspectDew();
 
-      var generate = _libDecoratorsIterateDew();
+      var generate = _iterateDew();
 
-      var progress = _libDecoratorsProgressDew();
+      var progress = _progressDew();
 
-      var withThis = _libDecoratorsWithDew();
+      var withThis = _withDew();
 
-      var unhandledRejection = _libDecoratorsUnhandledRejectionDew();
+      var unhandledRejection = _unhandledRejectionDew();
 
-      var TimeoutError = _libTimeoutErrorDew();
+      var TimeoutError = _TimeoutErrorDew();
 
       var Promise = [array, flow, fold, generate, progress, inspect, withThis, timed, unhandledRejection].reduce(function (Promise, feature) {
         return feature(Promise);
-      }, _libPromiseDew());
+      }, _PromiseDew());
 
-      var apply = _libApplyDew()(Promise); // Public API
+      var apply = _applyDew()(Promise); // Public API
 
 
       when.promise = promise; // Create a pending promise

@@ -1,4 +1,5 @@
 const { parse } = require('@babel/parser');
+const { basename, extname } = require('path');
 const stage3Syntax = ['asyncGenerators', 'classProperties', 'optionalCatchBinding', 'objectRestSpread', 'numericSeparator', 'dynamicImport', 'importMeta'];
 
 module.exports = function ({ types: t }) {
@@ -14,7 +15,7 @@ module.exports = function ({ types: t }) {
   };
   const nodeRequire = (path, state, depNode) => {
     if (!state.nodeRequireBinding)
-      state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier('nodeRequire');
+      state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier(state.opts.browserOnly ? 'nullRequire' : 'nodeRequire');
     return t.callExpression(state.nodeRequireBinding, [depNode]);
   };
   const moduleDeclarator = t.variableDeclaration('var', [
@@ -24,30 +25,31 @@ module.exports = function ({ types: t }) {
   ]);
 
   // we detect optional require based on pattern matching:
-  // try { const x = require('x') } catch (e) {/*empty*/}
+  // try { const? x = require('x') } catch (e) { ... }
   function isOptionalRequire (path) {
     const secondParent = path.parentPath && path.parentPath.parentPath;
     const fourthParent = secondParent.parentPath && secondParent.parentPath.parentPath;
     return secondParent && fourthParent &&
-        (t.isVariableDeclarator(path.parentPath.node) || t.isAssignmentExpression(path.parentPath.node)) &&
-        (t.isVariableDeclaration(secondParent.node) || t.isExpressionStatement(secondParent.node)) && t.isTryStatement(fourthParent.node) && fourthParent.node.handler.body.body.length === 0;
+        t.isTryStatement(fourthParent) && fourthParent.node.block.body.length === 1 &&
+        (t.isVariableDeclarator(path.parentPath) && t.isVariableDeclaration(secondParent) ||
+         t.isAssignmentExpression(path.parentPath) && t.isExpressionStatement(secondParent));
   }
 
   // given a string literal expression
   // partially resolve the leading part if a string literal
   function partialResolve (expr, resolve) {
     if (t.isStringLiteral(expr)) {
-      return t.stringLiteral(resolve(expr.value, true) || expr.value);
+      return t.stringLiteral(resolve(expr.value, { requireResolve: true }) || expr.value);
     }
     else if (t.isTemplateLiteral(expr)) {
-      let partialResolve = resolve(expr.quasis[0].value.cooked, true) || expr.quasis[0].value.cooked;
+      let partialResolve = resolve(expr.quasis[0].value.cooked, { requireResolve: true }) || expr.quasis[0].value.cooked;
       expr.quasis[0] = t.templateElement({
         raw: partialResolve
       });
       return expr;
     }
     else if (t.isBinaryExpression(expr) && expr.operator === '+' && t.isStringLiteral(expr.left)) {
-      expr.left.value = resolve(expr.left.value, true);
+      expr.left.value = resolve(expr.left.value, { requireResolve: true });
     }
     return expr;
   }
@@ -98,17 +100,9 @@ module.exports = function ({ types: t }) {
     return t.isStringLiteral(node) || t.isTemplateLiteral(node) && node.quasis[0].value.cooked.length || t.isBinaryExpression(node) || t.isIdentifier(node) && node.name === '__dirname';
   }
 
-  function addDependency (path, state, depModuleArg) {
+  function addDependency (path, state, depModuleArg, optional = false) {
     const exprs = [];
     let depModule = resolvePartialWildcardString(depModuleArg, false, exprs);
-
-    // .node addons use nodeRequire
-    if (depModule.endsWith('.node')) {
-      if (!state.nodeRequireBinding)
-        state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier('nodeRequire');
-      path.replaceWith(state.nodeRequireBinding);
-      return t.callExpression(state.nodeRequireBinding, [depModuleArg]);
-    }
 
     // no support for fully dynamic require
     if (depModule === '*') {
@@ -118,14 +112,16 @@ module.exports = function ({ types: t }) {
     let depResolved;
 
     if (depModule.indexOf('*') !== -1) {
-      depResolved = state.opts.resolveWildcard ? state.opts.resolveWildcard(depModule) : null;
+      depResolved = state.opts.resolve(depModule, { wildcard: true, optional });
+      if (depResolved.indexOf('*') !== -1)
+        throw new Error('Resolve of ' + depModule + ' did not handle wildcard, returned ' + JSON.stringify(depResolved));
 
       if (!depResolved)
         return nodeRequire(path, state, depModuleArg);
 
       if (depResolved instanceof Array) {
         // add each module as a dependency (still using resolver)
-        const depExprs = depResolved.map(m => addDependency(path, state, t.stringLiteral(state.opts.resolve ? state.opts.resolve(m) || m : m)));
+        const depExprs = depResolved.map(m => generateDependency(m, path, state));
 
         const exprIds = exprs.map((_expr, i) => t.Identifier('e' + (i === 0 ? '' : i + 1)));
 
@@ -154,36 +150,42 @@ module.exports = function ({ types: t }) {
         
         return t.callExpression(t.functionExpression(null, exprIds, t.blockStatement([t.returnStatement(matchExpression)])), exprs);
       }
-
-      depModule = depResolved;
-    }
-    
-    depResolved = state.opts.resolve ? state.opts.resolve(depModule) : depModule;
-
-    let depName = path.scope.getProgramParent().generateUidIdentifier(depModule).name;
-
-    // apply resolver
-    
-    if (depResolved === null) {
-      return nodeRequire(path, state, depModuleArg);
     }
     else {
-      depModule = depResolved || depModule;
-      for (let dep of state.deps) {
-        if (dep.literal.value === depModule)
-          return requireSub(dep, state);
-      }
-      let dew = true;
-      if (state.opts.esmDependencies && state.opts.esmDependencies(depModule))
-        dew = false;
-      const dep = {
-        literal: t.stringLiteral(depModule),
-        id: t.identifier(depName + (dew ? 'Dew' : '')),
-        dew
-      };
-      state.deps.push(dep)
-      return requireSub(dep, state);
+      depResolved = state.opts.resolve(depModule, { optional });
     }
+
+    if (depResolved === undefined)
+      depResolved = depModule;
+
+    if (depResolved === null || depResolved.endsWith('.node'))
+      return nodeRequire(path, state, depModuleArg);
+
+    return generateDependency(depResolved, path, state);
+  }
+
+  function generateDependency (depResolved, path, state) {
+    if (typeof depResolved !== 'string')
+      throw new Error('Expected a string.');
+    if (depResolved === '@empty')
+      return t.objectExpression([]);
+    for (let dep of state.deps) {
+      if (dep.literal.value === depResolved)
+        return requireSub(dep, state);
+    }
+    let dew = true;
+    if (state.opts.esmDependencies && state.opts.esmDependencies(depResolved))
+      dew = false;
+    const uidName = basename(depResolved);
+    const uidExt = extname(uidName);
+    const depName = path.scope.getProgramParent().generateUidIdentifier(uidName.substr(0, uidName.length - uidExt.length)).name;
+    const dep = {
+      literal: t.stringLiteral(depResolved),
+      id: t.identifier(depName + (dew ? 'Dew' : '')),
+      dew
+    };
+    state.deps.push(dep)
+    return requireSub(dep, state);
   }
 
   function dce (path) {
@@ -298,6 +300,7 @@ module.exports = function ({ types: t }) {
           }
 
           state.define = {};
+          state.opts.resolve = state.opts.resolve || (m => m);
           if (state.opts.define)
             Object.keys(state.opts.define).forEach(defineName => {
               let parts = defineName.split('.');
@@ -419,68 +422,84 @@ module.exports = function ({ types: t }) {
            * nodeRequire special cases
            */
           if (state.nodeRequireBinding) {
-            // TODO: fully support browserOnly here
-            const module = !state.opts.browserOnly && addDependency(path, state, t.stringLiteral('module'));
-            const process = t.identifier('process');
-            const Module = t.identifier('Module');
-            const m = t.identifier('m');
-            const e = t.identifier('e');
-            const id = t.identifier('id');
-            const filename = t.identifier('filename');
-            path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(state.nodeRequireBinding, t.callExpression(t.functionExpression(null, [], t.blockStatement([
-                t.variableDeclaration('var', [
-                  t.variableDeclarator(Module, t.memberExpression(module, Module))
-                ]),
-                t.ifStatement(Module, t.blockStatement([
+            if (state.opts.browserOnly) {
+              const e = t.identifier('e');
+              const id = t.identifier('id');
+              path.unshiftContainer('body', t.variableDeclaration('var', [
+                t.variableDeclarator(state.nodeRequireBinding, t.callExpression(t.functionExpression(null, [], t.blockStatement([
                   t.variableDeclaration('var', [
-                    t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral('')])),
-                    t.variableDeclarator(process, t.callExpression(t.memberExpression(m, t.identifier('require')), [
-                      t.stringLiteral('process')
+                    t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
+                      t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
                     ]))
                   ]),
-                  t.expressionStatement(t.assignmentExpression('=',
-                    t.memberExpression(m, filename),
-                    t.callExpression(
-                      t.memberExpression(t.memberExpression(
-                        t.metaProperty(t.identifier('import'), t.identifier('meta')),
-                        t.identifier('url')
-                      ), t.identifier('substr')),
-                      [t.binaryExpression('+',
-                        t.numericLiteral(7),
-                        t.binaryExpression('===',
-                          t.memberExpression(process, t.identifier('platform')),
-                          t.stringLiteral('win32')
-                        )
-                      )]
-                    )
-                  )),
-                  t.expressionStatement(t.assignmentExpression('=',
-                    t.memberExpression(m, t.identifier('paths')),
-                    t.callExpression(t.memberExpression(Module, t.identifier('_nodeModulePaths')), [
-                      t.callExpression(t.memberExpression(t.memberExpression(m, filename), t.identifier('substr')), [
-                        t.numericLiteral(0),
-                        t.callExpression(t.memberExpression(t.memberExpression(m, filename), t.identifier('lastIndexOf')), [t.stringLiteral('/')])
-                      ])
-                    ])
-                  )),
-                  t.returnStatement(t.callExpression(
-                    t.memberExpression(t.memberExpression(m, t.identifier('require')), t.identifier('bind')),
-                    [m]
-                  ))
-                ]), t.blockStatement([
-                  t.returnStatement(t.functionExpression(null, [id], t.blockStatement([
+                  t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
+                  t.throwStatement(e)  
+                ])), []))
+              ]));
+            }
+            else {
+              const module = addDependency(path, state, t.stringLiteral('module'));
+              const process = t.identifier('process');
+              const Module = t.identifier('Module');
+              const m = t.identifier('m');
+              const e = t.identifier('e');
+              const id = t.identifier('id');
+              const filename = t.identifier('filename');
+              path.unshiftContainer('body', t.variableDeclaration('var', [
+                t.variableDeclarator(state.nodeRequireBinding, t.callExpression(t.functionExpression(null, [], t.blockStatement([
+                  t.variableDeclaration('var', [
+                    t.variableDeclarator(Module, t.memberExpression(module, Module))
+                  ]),
+                  t.ifStatement(Module, t.blockStatement([
                     t.variableDeclaration('var', [
-                      t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
-                        t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
+                      t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral('')])),
+                      t.variableDeclarator(process, t.callExpression(t.memberExpression(m, t.identifier('require')), [
+                        t.stringLiteral('process')
                       ]))
                     ]),
-                    t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
-                    t.throwStatement(e)  
-                  ])))
-                ]))
-              ])), []))
-            ]));
+                    t.expressionStatement(t.assignmentExpression('=',
+                      t.memberExpression(m, filename),
+                      t.callExpression(
+                        t.memberExpression(t.memberExpression(
+                          t.metaProperty(t.identifier('import'), t.identifier('meta')),
+                          t.identifier('url')
+                        ), t.identifier('substr')),
+                        [t.binaryExpression('+',
+                          t.numericLiteral(7),
+                          t.binaryExpression('===',
+                            t.memberExpression(process, t.identifier('platform')),
+                            t.stringLiteral('win32')
+                          )
+                        )]
+                      )
+                    )),
+                    t.expressionStatement(t.assignmentExpression('=',
+                      t.memberExpression(m, t.identifier('paths')),
+                      t.callExpression(t.memberExpression(Module, t.identifier('_nodeModulePaths')), [
+                        t.callExpression(t.memberExpression(t.memberExpression(m, filename), t.identifier('substr')), [
+                          t.numericLiteral(0),
+                          t.callExpression(t.memberExpression(t.memberExpression(m, filename), t.identifier('lastIndexOf')), [t.stringLiteral('/')])
+                        ])
+                      ])
+                    )),
+                    t.returnStatement(t.callExpression(
+                      t.memberExpression(t.memberExpression(m, t.identifier('require')), t.identifier('bind')),
+                      [m]
+                    ))
+                  ]), t.blockStatement([
+                    t.returnStatement(t.functionExpression(null, [id], t.blockStatement([
+                      t.variableDeclaration('var', [
+                        t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
+                          t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
+                        ]))
+                      ]),
+                      t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
+                      t.throwStatement(e)  
+                    ])))
+                  ]))
+                ])), []))
+              ]));
+            }
           }
 
           /*
@@ -667,7 +686,7 @@ module.exports = function ({ types: t }) {
               );
             }
             else {
-              parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0]));
+              parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0], isOptionalRequire(parentPath)));
             }
           }
           else {
@@ -675,16 +694,23 @@ module.exports = function ({ types: t }) {
             // path.replaceWith(t.nullLiteral());
             // dce(path);
             if (!t.isMemberExpression(path.parentPath) || path.parentPath.node.object !== path.node) {
-              if (!state.nodeRequireBinding)
-                state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier('nodeRequire');
-              path.replaceWith(state.nodeRequireBinding);
+              if (!state.opts.browserOnly) {
+                if (!state.nodeRequireBinding)
+                  state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier(state.opts.browserOnly ? 'nullRequire' : 'nodeRequire');
+                path.replaceWith(state.nodeRequireBinding);
+              }
             }
           }
         }
         else if (identifierName === '__non_webpack_require__') {
-          if (!state.nodeRequireBinding)
-            state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier('nodeRequire');
-          path.replaceWith(state.nodeRequireBinding);
+          if (!state.opts.browserOnly) {
+            if (!state.nodeRequireBinding)
+              state.nodeRequireBinding = path.scope.getProgramParent().generateUidIdentifier(state.opts.browserOnly ? 'nullRequire' : 'nodeRequire');
+            path.replaceWith(state.nodeRequireBinding);
+          }
+          else {
+            path.replaceWith(t.identifier('require'));
+          }
         }
         else if (!state.hasProcess && identifierName === 'process' && !path.scope.hasBinding('process')) {
           state.hasProcess = true;
@@ -718,7 +744,7 @@ module.exports = function ({ types: t }) {
               // require alternative
               case 'require':
                 if (t.isCallExpression(parentPath.parent) && parentPath.parent.callee === parentPath.node) {
-                  parentPath.parentPath.replaceWith(addDependency(parentPath, state, parentPath.parent.arguments[0]));
+                  parentPath.parentPath.replaceWith(addDependency(parentPath, state, parentPath.parent.arguments[0], isOptionalRequire(parentPath.parentPath)));
                 }
                 else {
                   state.usesDynamicRequire = true;
