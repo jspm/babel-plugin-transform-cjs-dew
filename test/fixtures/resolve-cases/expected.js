@@ -14,7 +14,11 @@ export function dew() {
 
       m.filename = import.meta.url.substr(7 + (process.platform === "win32"));
       m.paths = Module._nodeModulePaths(m.filename.substr(0, m.filename.lastIndexOf("/")));
-      return m.require.bind(m);
+      return Object.assign(m.require.bind(m), {
+        resolve: function (id) {
+          return Module._resolveFilename(id, m);
+        }
+      });
     } else {
       function _nodeRequire(id) {
         var e = new Error("Cannot find module '" + id + "'");

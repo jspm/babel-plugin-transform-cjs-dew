@@ -435,9 +435,9 @@ module.exports = function ({ types: t }) {
               const id = t.identifier('id');
               const filename = t.identifier('filename');
 
-              let requireFn;
+              let fallbackRequireFn;
               if (state.requireResolve) {
-                requireFn = [
+                fallbackRequireFn = [
                   t.functionDeclaration(state.nodeRequireBinding, [id], t.blockStatement([
                     t.variableDeclaration('var', [
                       t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
@@ -452,7 +452,7 @@ module.exports = function ({ types: t }) {
                 ];
               }
               else {
-                requireFn = [t.returnStatement(t.functionExpression(state.nodeRequireBinding, [id], t.blockStatement([
+                fallbackRequireFn = [t.returnStatement(t.functionExpression(state.nodeRequireBinding, [id], t.blockStatement([
                   t.variableDeclaration('var', [
                     t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
                       t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
@@ -461,6 +461,25 @@ module.exports = function ({ types: t }) {
                   t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
                   t.throwStatement(e)
                 ])))];
+              }
+
+              let requireFn = t.callExpression(
+                t.memberExpression(t.memberExpression(m, t.identifier('require')), t.identifier('bind')),
+                [m]
+              );
+
+              if (state.requireResolve) {
+                requireFn = t.callExpression(
+                  t.memberExpression(t.identifier('Object'), t.identifier('assign')),
+                  [
+                    requireFn,
+                    t.objectExpression([
+                      t.objectProperty(t.identifier('resolve'), t.functionExpression(null, [id], t.blockStatement([
+                        t.returnStatement(t.callExpression(t.memberExpression(Module, t.identifier('_resolveFilename')), [id, m]))
+                      ])))
+                    ])
+                  ]
+                );
               }
 
               path.unshiftContainer('body', t.variableDeclaration('var', [
@@ -500,11 +519,8 @@ module.exports = function ({ types: t }) {
                         ])
                       ])
                     )),
-                    t.returnStatement(t.callExpression(
-                      t.memberExpression(t.memberExpression(m, t.identifier('require')), t.identifier('bind')),
-                      [m]
-                    ))
-                  ]), t.blockStatement(requireFn))
+                    t.returnStatement(requireFn)
+                  ]), t.blockStatement(fallbackRequireFn))
                 ])), []))
               ]));
             }
