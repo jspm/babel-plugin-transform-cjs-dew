@@ -329,6 +329,9 @@ module.exports = function ({ types: t }) {
           state.inserting = false;
           state.nodeRequireBinding = undefined;
           state.requireResolve = false;
+          state.requireCache = false;
+          state.requireMain = false;
+          state.requireExtensions = false;
 
           if (path.node.body.length !== 1 ||
               !t.isExpressionStatement(path.node.body[0]) ||
@@ -413,9 +416,24 @@ module.exports = function ({ types: t }) {
             if (state.opts.browserOnly) {
               const e = t.identifier('e');
               const id = t.identifier('id');
-              if (state.requireResolve)
-                path.unshiftContainer('body',
-                    t.expressionStatement(t.assignmentExpression('=', t.memberExpression(state.nodeRequireBinding, t.identifier('resolve')), state.nodeRequireBinding)));
+              if (state.requireResolve) {
+                path.unshiftContainer('body', t.expressionStatement(t.assignmentExpression('=', 
+                  t.memberExpression(state.nodeRequireBinding, t.identifier('resolve')),
+                  state.nodeRequireBinding
+                )));
+              }
+              if (state.requireCache) {
+                path.unshiftContainer('body', t.expressionStatement(t.assignmentExpression('=', 
+                  t.memberExpression(state.nodeRequireBinding, t.identifier('cache')),
+                  t.objectExpression([])
+                )));
+              }
+              if (state.requireExtensions) {
+                path.unshiftContainer('body', t.expressionStatement(t.assignmentExpression('=', 
+                  t.memberExpression(state.nodeRequireBinding, t.identifier('extensions')),
+                  t.objectExpression([])
+                )));
+              }
               path.unshiftContainer('body', t.functionDeclaration(state.nodeRequireBinding, [id], t.blockStatement([
                 t.variableDeclaration('var', [
                   t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
@@ -436,31 +454,43 @@ module.exports = function ({ types: t }) {
               const filename = t.identifier('filename');
 
               let fallbackRequireFn;
+              const fallbackRequireProps = [];
               if (state.requireResolve) {
+                fallbackRequireProps.push(t.expressionStatement(t.assignmentExpression('=',
+                  t.memberExpression(state.nodeRequireBinding, t.identifier('resolve')),
+                  state.nodeRequireBinding
+                )));
+              }
+              if (state.requireCache) {
+                fallbackRequireProps.push(t.expressionStatement(t.assignmentExpression('=',
+                  t.memberExpression(state.nodeRequireBinding, t.identifier('cache')),
+                  t.objectExpression([])
+                )));
+              }
+              if (state.requireExtensions) {
+                fallbackRequireProps.push(t.expressionStatement(t.assignmentExpression('=',
+                  t.memberExpression(state.nodeRequireBinding, t.identifier('extensions')),
+                  t.objectExpression([])
+                )));
+              }
+              const notFoundBlock = t.blockStatement([
+                t.variableDeclaration('var', [
+                  t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
+                    t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
+                  ]))
+                ]),
+                t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
+                t.throwStatement(e)
+              ]);
+              if (fallbackRequireProps.length) {
                 fallbackRequireFn = [
-                  t.functionDeclaration(state.nodeRequireBinding, [id], t.blockStatement([
-                    t.variableDeclaration('var', [
-                      t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
-                        t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
-                      ]))
-                    ]),
-                    t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
-                    t.throwStatement(e)
-                  ])),
-                  t.expressionStatement(t.assignmentExpression('=', t.memberExpression(state.nodeRequireBinding, t.identifier('resolve')), state.nodeRequireBinding)),
+                  t.functionDeclaration(state.nodeRequireBinding, [id], notFoundBlock),
+                  ...fallbackRequireProps,
                   t.returnStatement(state.nodeRequireBinding)
                 ];
               }
               else {
-                fallbackRequireFn = [t.returnStatement(t.functionExpression(state.nodeRequireBinding, [id], t.blockStatement([
-                  t.variableDeclaration('var', [
-                    t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
-                      t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
-                    ]))
-                  ]),
-                  t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
-                  t.throwStatement(e)
-                ])))];
+                fallbackRequireFn = [t.returnStatement(t.functionExpression(state.nodeRequireBinding, [id], notFoundBlock))];
               }
 
               let requireFn = t.callExpression(
@@ -468,17 +498,25 @@ module.exports = function ({ types: t }) {
                 [m]
               );
 
+              const requireProperties = [];
               if (state.requireResolve) {
+                requireProperties.push(t.objectProperty(t.identifier('resolve'), t.functionExpression(null, [id], t.blockStatement([
+                  t.returnStatement(t.callExpression(t.memberExpression(Module, t.identifier('_resolveFilename')), [id, m]))
+                ]))));
+              }
+              if (state.requireCache) {
+                const cache = t.identifier('cache');
+                requireProperties.push(t.objectProperty(cache, t.memberExpression(m, cache)));
+              }
+              if (state.requireExtensions) {
+                const extensions = t.identifier('extensions');
+                requireProperties.push(t.objectProperty(extensions, t.memberExpression(m, extensions)));
+              }
+
+              if (requireProperties.length) {
                 requireFn = t.callExpression(
                   t.memberExpression(t.identifier('Object'), t.identifier('assign')),
-                  [
-                    requireFn,
-                    t.objectExpression([
-                      t.objectProperty(t.identifier('resolve'), t.functionExpression(null, [id], t.blockStatement([
-                        t.returnStatement(t.callExpression(t.memberExpression(Module, t.identifier('_resolveFilename')), [id, m]))
-                      ])))
-                    ])
-                  ]
+                  [requireFn, t.objectExpression(requireProperties)]
                 );
               }
 
@@ -615,8 +653,12 @@ module.exports = function ({ types: t }) {
               path.replaceWith(t.identifier('undefined'));
             break;
             case 'extensions':
+              state.requireExtensions = true;
+              path.get('object').replaceWith(getNodeRequireBinding(path,  state));
+            break;
             case 'cache':
-              path.replaceWith(t.objectExpression([]));
+              state.requireCache = true;
+              path.get('object').replaceWith(getNodeRequireBinding(path,  state));
             break;
             default:
               path.replaceWith(t.identifier('undefined'));

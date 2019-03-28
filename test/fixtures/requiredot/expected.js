@@ -20,7 +20,9 @@ export function dew() {
       return Object.assign(m.require.bind(m), {
         resolve: function (id) {
           return Module._resolveFilename(id, m);
-        }
+        },
+        cache: m.cache,
+        extensions: m.extensions
       });
     } else {
       function _nodeRequire(id) {
@@ -30,13 +32,15 @@ export function dew() {
       }
 
       _nodeRequire.resolve = _nodeRequire;
+      _nodeRequire.cache = {};
+      _nodeRequire.extensions = {};
       return _nodeRequire;
     }
   }();
 
-  delete {}['asdf'];
+  delete _nodeRequire.cache['asdf'];
 
-  ({})['.yay'] = function () {};
+  _nodeRequire.extensions['.yay'] = function () {};
 
   if (undefined === module) {
     console.log('cli');
