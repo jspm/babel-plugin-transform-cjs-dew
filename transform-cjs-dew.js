@@ -505,12 +505,10 @@ module.exports = function ({ types: t }) {
                 ]))));
               }
               if (state.requireCache) {
-                const cache = t.identifier('cache');
-                requireProperties.push(t.objectProperty(cache, t.memberExpression(m, cache)));
+                requireProperties.push(t.objectProperty(t.identifier('cache'), t.memberExpression(module, t.identifier('_cache'))));
               }
               if (state.requireExtensions) {
-                const extensions = t.identifier('extensions');
-                requireProperties.push(t.objectProperty(extensions, t.memberExpression(m, extensions)));
+                requireProperties.push(t.objectProperty(t.identifier('extensions'), t.memberExpression(module, t.identifier('_extensions'))));
               }
 
               if (requireProperties.length) {
