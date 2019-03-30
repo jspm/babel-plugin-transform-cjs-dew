@@ -21,8 +21,8 @@ export function dew() {
         resolve: function (id) {
           return Module._resolveFilename(id, m);
         },
-        cache: _moduleDew()._cache,
-        extensions: _moduleDew()._extensions
+        cache: m.cache,
+        extensions: m.extensions
       });
     } else {
       function _nodeRequire(id) {
