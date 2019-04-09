@@ -1,11 +1,10 @@
 module.exports = {
-  resolve (name) {
-    if (name.startsWith('./'))
-      return '/base/' + name.substr(2);
-    if (name.startsWith('../'))
-      return '/' + name.substr(3);
-    if (name[0] === '/')
-      return name;
-    return name;
+  resolve (name, { browserResolve }) {
+    if (browserResolve) {
+      if (name.startsWith('./'))
+        return '/base/' + name.substr(2);
+      if (name.startsWith('../'))
+        return '/' + name.substr(3);
+    }
   }
 }

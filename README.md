@@ -18,7 +18,7 @@ require('babel-core').transform('<source>', {
       define: {
         'process.env.NODE_ENV': '"development"'
       },
-      resolve (name, { wildcard?, optional? }) {
+      resolve (name, { wildcard?, optional?, browserResolve? }) {
         if (name === 'process')
           return 'process-path';
         if (name === './x')

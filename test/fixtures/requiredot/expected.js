@@ -23,14 +23,11 @@ export function dew() {
         }
       });
     } else {
-      function _nodeRequire(id) {
+      return function _nodeRequire(id) {
         var e = new Error("Cannot find module '" + id + "'");
         e.code = "MODULE_NOT_FOUND";
         throw e;
-      }
-
-      _nodeRequire.resolve = _nodeRequire;
-      return _nodeRequire;
+      };
     }
   }();
 
@@ -42,8 +39,7 @@ export function dew() {
     console.log('cli');
   }
 
-  var path = _nodeRequire.resolve('./asdf.js');
-
+  var path = _nodeRequire.resolve ? _nodeRequire.resolve('./asdf.js') : "/resolved";
   fs.readFile(path);
   return module.exports;
 }

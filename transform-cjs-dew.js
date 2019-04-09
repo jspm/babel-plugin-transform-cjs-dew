@@ -101,7 +101,8 @@ module.exports = function ({ types: t }) {
 
     if (depModule.indexOf('*') !== -1) {
       depResolved = state.opts.resolve(depModule, { wildcard: true, optional });
-      if (depResolved.indexOf('*') !== -1)
+
+      if (typeof depResolved === 'string' && depResolved.indexOf('*') !== -1)
         throw new Error('Resolve of ' + depModule + ' did not handle wildcard, returned ' + JSON.stringify(depResolved));
 
       if (!depResolved)
@@ -109,6 +110,7 @@ module.exports = function ({ types: t }) {
 
       if (depResolved instanceof Array) {
         // add each module as a dependency (still using resolver)
+        // (we're kind of relying on .node wildcards not being common, could be added though)
         const depExprs = depResolved.map(m => generateDependency(m, path, state));
 
         const exprIds = exprs.map((_expr, i) => t.Identifier('e' + (i === 0 ? '' : i + 1)));
@@ -413,9 +415,6 @@ module.exports = function ({ types: t }) {
             if (state.opts.browserOnly) {
               const e = t.identifier('e');
               const id = t.identifier('id');
-              if (state.requireResolve)
-                path.unshiftContainer('body',
-                    t.expressionStatement(t.assignmentExpression('=', t.memberExpression(state.nodeRequireBinding, t.identifier('resolve')), state.nodeRequireBinding)));
               path.unshiftContainer('body', t.functionDeclaration(state.nodeRequireBinding, [id], t.blockStatement([
                 t.variableDeclaration('var', [
                   t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
@@ -434,34 +433,6 @@ module.exports = function ({ types: t }) {
               const e = t.identifier('e');
               const id = t.identifier('id');
               const filename = t.identifier('filename');
-
-              let fallbackRequireFn;
-              if (state.requireResolve) {
-                fallbackRequireFn = [
-                  t.functionDeclaration(state.nodeRequireBinding, [id], t.blockStatement([
-                    t.variableDeclaration('var', [
-                      t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
-                        t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
-                      ]))
-                    ]),
-                    t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
-                    t.throwStatement(e)
-                  ])),
-                  t.expressionStatement(t.assignmentExpression('=', t.memberExpression(state.nodeRequireBinding, t.identifier('resolve')), state.nodeRequireBinding)),
-                  t.returnStatement(state.nodeRequireBinding)
-                ];
-              }
-              else {
-                fallbackRequireFn = [t.returnStatement(t.functionExpression(state.nodeRequireBinding, [id], t.blockStatement([
-                  t.variableDeclaration('var', [
-                    t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
-                      t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
-                    ]))
-                  ]),
-                  t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
-                  t.throwStatement(e)
-                ])))];
-              }
 
               let requireFn = t.callExpression(
                 t.memberExpression(t.memberExpression(m, t.identifier('require')), t.identifier('bind')),
@@ -520,7 +491,15 @@ module.exports = function ({ types: t }) {
                       ])
                     )),
                     t.returnStatement(requireFn)
-                  ]), t.blockStatement(fallbackRequireFn))
+                  ]), t.blockStatement([t.returnStatement(t.functionExpression(state.nodeRequireBinding, [id], t.blockStatement([
+                    t.variableDeclaration('var', [
+                      t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
+                        t.binaryExpression('+', t.binaryExpression('+', t.stringLiteral("Cannot find module '"), id), t.stringLiteral("'"))
+                      ]))
+                    ]),
+                    t.expressionStatement(t.assignmentExpression('=', t.memberExpression(e, t.identifier('code')), t.stringLiteral('MODULE_NOT_FOUND'))),
+                    t.throwStatement(e)
+                  ])))]))
                 ])), []))
               ]));
             }
@@ -607,7 +586,40 @@ module.exports = function ({ types: t }) {
               if (t.isCallExpression(path.parent) && path.parent.callee === path.node &&
                   path.parent.arguments.length === 1) {
                 state.requireResolve = true;
-                path.get('object').replaceWith(getNodeRequireBinding(path,  state));
+                const expr = path.parent.arguments[0];
+                const arg = resolvePartialWildcardString(expr, false, []);
+                // browser resolve wildcards not currently supported
+                const resolved = arg.indexOf('*') !== -1 ? null : state.opts.resolve(arg, { browserResolve: true });
+                if (resolved === undefined)
+                  resolved = arg;
+                const requireBinding = getNodeRequireBinding(path,  state);
+                if (state.opts.browserOnly) {
+                  if (resolved === null) {
+                    // _nodeRequire(expr)
+                    path.replaceWith(t.callExpression(requireBinding), [expr]);
+                  }
+                  else {
+                    // './browser-string';
+                    path.replaceWith(t.stringLiteral(resolved));
+                  }
+                }
+                else {
+                  if (resolved === null) {
+                    // (_nodeRequire.resolve || _nodeRequire)(expr)  
+                    path.parentPath.replaceWith(t.callExpression(t.logicalExpression('||',
+                      t.memberExpression(requireBinding, t.identifier('resolve')),
+                      requireBinding
+                    ), [expr]));
+                  }
+                  else {
+                    // _nodeRequire.resolve ? _nodeRequire.resolve(expr) : './browser-string';
+                    path.parentPath.replaceWith(t.conditionalExpression(
+                      t.memberExpression(requireBinding, t.identifier('resolve')),
+                      t.callExpression(t.memberExpression(requireBinding, t.identifier('resolve')), [expr]),
+                      t.stringLiteral(resolved)
+                    ));
+                  }
+                }
               }
             break;
             // TODO: require.main === module -> import.meta.main

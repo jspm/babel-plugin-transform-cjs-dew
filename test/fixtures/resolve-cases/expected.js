@@ -20,26 +20,22 @@ export function dew() {
         }
       });
     } else {
-      function _nodeRequire(id) {
+      return function _nodeRequire(id) {
         var e = new Error("Cannot find module '" + id + "'");
         e.code = "MODULE_NOT_FOUND";
         throw e;
-      }
-
-      _nodeRequire.resolve = _nodeRequire;
-      return _nodeRequire;
+      };
     }
   }();
 
-  _nodeRequire.resolve('./x');
+  _nodeRequire.resolve ? _nodeRequire.resolve('./x') : "/base/x";
+  _nodeRequire.resolve ? _nodeRequire.resolve(`./x`) : "/base/x";
 
-  _nodeRequire.resolve(`./x`);
+  (_nodeRequire.resolve || _nodeRequire)(`./x/${thing}`);
 
-  _nodeRequire.resolve(`./x/${thing}`);
+  _nodeRequire.resolve ? _nodeRequire.resolve('../x' + '/y') : "/x/y";
 
-  _nodeRequire.resolve('../x' + '/y');
-
-  _nodeRequire.resolve(x);
+  (_nodeRequire.resolve || _nodeRequire)(x);
 
   return exports;
 }
