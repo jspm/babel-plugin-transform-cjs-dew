@@ -8,10 +8,8 @@ export function dew() {
     var Module = _nodeRequire("module").Module;
 
     if (Module) {
-      var m = new Module(""),
-          process = m.require("process");
-
-      m.filename = import.meta.url.substr(7 + (process.platform === "win32"));
+      var m = new Module("");
+      m.filename = import.meta.url.substr(7 + (Module._nodeModulePaths("/")[0].length > 13));
       m.paths = Module._nodeModulePaths(m.filename.substr(0, m.filename.lastIndexOf("/")));
       return m.require.bind(m);
     } else {

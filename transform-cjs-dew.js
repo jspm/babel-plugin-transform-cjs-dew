@@ -392,6 +392,23 @@ module.exports = function ({ types: t }) {
           }
 
           /*
+           * Add process and Buffer imports
+           */
+          if (state.hasProcess) {
+            let dep = addDependency(path, state, t.stringLiteral('process'));
+            path.unshiftContainer('body', t.variableDeclaration('var', [
+              t.variableDeclarator(t.identifier('process'), dep)
+            ]));
+          }
+
+          if (state.hasBuffer) {
+            let dep = addDependency(path, state, t.stringLiteral('buffer'));
+            path.unshiftContainer('body', t.variableDeclaration('var', [
+              t.variableDeclarator(t.identifier('Buffer'), t.memberExpression(dep, t.identifier('Buffer')))
+            ]));
+          }
+
+          /*
            * nodeRequire special cases
            */
           if (state.nodeRequireBinding) {
@@ -443,10 +460,7 @@ module.exports = function ({ types: t }) {
                   ]),
                   t.ifStatement(Module, t.blockStatement([
                     t.variableDeclaration('var', [
-                      t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral('')])),
-                      ...(state.hasProcess ? [] : [t.variableDeclarator(process, t.callExpression(t.memberExpression(m, t.identifier('require')), [
-                        t.stringLiteral('process')
-                      ]))])
+                      t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral('')]))
                     ]),
                     t.expressionStatement(t.assignmentExpression('=',
                       t.memberExpression(m, filename),
@@ -457,9 +471,9 @@ module.exports = function ({ types: t }) {
                         ), t.identifier('substr')),
                         [t.binaryExpression('+',
                           t.numericLiteral(7),
-                          t.binaryExpression('===',
-                            t.memberExpression(process, t.identifier('platform')),
-                            t.stringLiteral('win32')
+                          t.binaryExpression('>',
+                            t.memberExpression(t.memberExpression(t.callExpression(t.memberExpression(Module, t.identifier('_nodeModulePaths')), [t.stringLiteral('/')]), t.numericLiteral(0), true), t.identifier('length')),
+                            t.numericLiteral(13)
                           )
                         )]
                       )
@@ -486,23 +500,6 @@ module.exports = function ({ types: t }) {
                 ])), []))
               ]));
             }
-          }
-
-          /*
-           * Add process and Buffer imports
-           */
-          if (state.hasProcess) {
-            let dep = addDependency(path, state, t.stringLiteral('process'));
-            path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('process'), dep)
-            ]));
-          }
-
-          if (state.hasBuffer) {
-            let dep = addDependency(path, state, t.stringLiteral('buffer'));
-            path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('Buffer'), t.memberExpression(dep, t.identifier('Buffer')))
-            ]));
           }
 
           /*
