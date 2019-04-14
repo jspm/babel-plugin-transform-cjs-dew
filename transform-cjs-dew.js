@@ -461,9 +461,9 @@ module.exports = function ({ types: t }) {
                   t.ifStatement(Module, t.blockStatement([
                     t.variableDeclaration('var', [
                       t.variableDeclarator(m, t.newExpression(Module, [t.stringLiteral('')])),
-                      t.variableDeclarator(process, t.callExpression(t.memberExpression(m, t.identifier('require')), [
+                      ...(state.hasProcess ? [] : [t.variableDeclarator(process, t.callExpression(t.memberExpression(m, t.identifier('require')), [
                         t.stringLiteral('process')
-                      ]))
+                      ]))])
                     ]),
                     t.expressionStatement(t.assignmentExpression('=',
                       t.memberExpression(m, filename),
