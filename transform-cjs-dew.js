@@ -392,23 +392,6 @@ module.exports = function ({ types: t }) {
           }
 
           /*
-           * Add process and Buffer imports
-           */
-          if (state.hasProcess) {
-            let dep = addDependency(path, state, t.stringLiteral('process'));
-            path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('process'), dep)
-            ]));
-          }
-
-          if (state.hasBuffer) {
-            let dep = addDependency(path, state, t.stringLiteral('buffer'));
-            path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('Buffer'), t.memberExpression(dep, t.identifier('Buffer')))
-            ]));
-          }
-
-          /*
            * nodeRequire special cases
            */
           if (state.nodeRequireBinding) {
@@ -503,6 +486,23 @@ module.exports = function ({ types: t }) {
                 ])), []))
               ]));
             }
+          }
+
+          /*
+           * Add process and Buffer imports
+           */
+          if (state.hasProcess) {
+            let dep = addDependency(path, state, t.stringLiteral('process'));
+            path.unshiftContainer('body', t.variableDeclaration('var', [
+              t.variableDeclarator(t.identifier('process'), dep)
+            ]));
+          }
+
+          if (state.hasBuffer) {
+            let dep = addDependency(path, state, t.stringLiteral('buffer'));
+            path.unshiftContainer('body', t.variableDeclaration('var', [
+              t.variableDeclarator(t.identifier('Buffer'), t.memberExpression(dep, t.identifier('Buffer')))
+            ]));
           }
 
           /*
