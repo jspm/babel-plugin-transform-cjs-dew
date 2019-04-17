@@ -39,5 +39,12 @@ export function dew() {
 
   var path = _nodeRequire.resolve ? _nodeRequire.resolve('./asdf.js') : "/resolved";
   fs.readFile(path);
+  const indirect = _nodeRequire.resolve;
+  indirect('./x.js');
+
+  if (_nodeRequire.resolve) {
+    console.log('Have require.resolve');
+  }
+
   return module.exports;
 }

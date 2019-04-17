@@ -7,3 +7,10 @@ if (require.main === module) {
 
 var path = require.resolve('./asdf.js');
 fs.readFile(path);
+
+const indirect = require.resolve;
+indirect('./x.js');
+
+if (require.resolve) {
+  console.log('Have require.resolve');
+}

@@ -427,7 +427,6 @@ module.exports = function ({ types: t }) {
             }
             else {
               const module = addDependency(path, state, t.stringLiteral('module'));
-              const process = t.identifier('process');
               const Module = t.identifier('Module');
               const m = t.identifier('m');
               const e = t.identifier('e');
@@ -586,7 +585,7 @@ module.exports = function ({ types: t }) {
                 const expr = path.parent.arguments[0];
                 const arg = resolvePartialWildcardString(expr, false, []);
                 // browser resolve wildcards not currently supported
-                const resolved = arg.indexOf('*') !== -1 ? null : state.opts.resolve(arg, { browserResolve: true });
+                let resolved = arg.indexOf('*') !== -1 ? null : state.opts.resolve(arg, { browserResolve: true });
                 if (resolved === undefined)
                   resolved = arg;
                 const requireBinding = getNodeRequireBinding(path,  state);
@@ -617,6 +616,11 @@ module.exports = function ({ types: t }) {
                     ));
                   }
                 }
+              }
+              // non-call of require.resolve -> support only in Node.js case
+              else {
+                state.requireResolve = true;
+                path.get('object').replaceWith(getNodeRequireBinding(path,  state));
               }
             break;
             // TODO: require.main === module -> import.meta.main
