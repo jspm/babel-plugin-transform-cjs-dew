@@ -17,6 +17,8 @@ module.exports = function ({ types: t }) {
   const moduleIdentifier = t.identifier('module');
   const dewIdentifier = t.identifier('dew');
 
+  const globalThis = t.identifier('globalThis');
+  const globalThisPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', globalThis), t.stringLiteral('undefined'));
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
   const requireSub = (dep) => {
@@ -324,7 +326,6 @@ module.exports = function ({ types: t }) {
           state.strictGlobalTypeofPaths = {};
           state.globalIdentifier = path.scope.generateUidIdentifier('global');
           state.usesGlobal = false;
-          state.redefinesSelfOrGlobal = false;
           state.usesModule = false;
           state.usesDynamicRequire = false;
           state.moduleDotExports = [];
@@ -537,8 +538,8 @@ module.exports = function ({ types: t }) {
           if (state.usesGlobal)
             dewBodyWrapper.push(
               t.variableDeclaration('var', [t.variableDeclarator(state.globalIdentifier,
-                t.conditionalExpression(ifSelfPredicate, selfIdentifier, t.identifier('global')))
-              ]));
+                t.conditionalExpression(globalThisPredicate, globalThis, t.conditionalExpression(ifSelfPredicate, selfIdentifier, t.identifier('global')))
+              )]));
 
           dewBodyWrapper.push(
             t.exportNamedDeclaration(
@@ -811,16 +812,6 @@ module.exports = function ({ types: t }) {
       },
 
       /*
-       * Detect top-level scope redefine of "self", "global" or "module"
-       */
-      VariableDeclarator (path, state) {
-        if (state.functionDepth === 0) {
-          if (path.node.id.name === 'self' || path.node.id.name === 'global' || path.node.id.name === 'GLOBAL')
-            state.redefinesSelfOrGlobal = true;
-        }
-      },
-
-      /*
        * top-level this.X -> exports.X
        */
       ThisExpression (path, state) {
@@ -850,14 +841,6 @@ module.exports = function ({ types: t }) {
           return;
         if (t.isIdentifier(path.node.left)) {
           let identifierName = path.node.left.name;
-
-          /*
-           * Catch "self" or "global" redefinitions
-           */
-          if (identifierName === 'self' || identifierName === 'global' || identifierName === 'GLOBAL') {
-            if (!path.scope.hasBinding(identifierName))
-              state.redefinesSelfOrGlobal = true;
-          }
 
           /*
            * Strict conversion (should really be extended to all assignment forms: destructuring, update expression, iterator assignment)
