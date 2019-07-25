@@ -103,7 +103,7 @@ module.exports = function ({ types: t }) {
       depResolved = state.opts.resolve(depModule, { wildcard: true, optional });
 
       if (typeof depResolved === 'string' && depResolved.indexOf('*') !== -1)
-        throw new Error('Resolve of ' + depModule + ' did not handle wildcard, returned ' + JSON.stringify(depResolved));
+        return null;
 
       if (!depResolved)
         return nodeRequire(path, state, depModuleArg);
@@ -396,16 +396,20 @@ module.exports = function ({ types: t }) {
            */
           if (state.hasProcess) {
             let dep = addDependency(path, state, t.stringLiteral('process'));
-            path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('process'), dep)
-            ]));
+            if (dep) {
+              path.unshiftContainer('body', t.variableDeclaration('var', [
+                t.variableDeclarator(t.identifier('process'), dep)
+              ]));
+            }
           }
 
           if (state.hasBuffer) {
             let dep = addDependency(path, state, t.stringLiteral('buffer'));
-            path.unshiftContainer('body', t.variableDeclaration('var', [
-              t.variableDeclarator(t.identifier('Buffer'), t.memberExpression(dep, t.identifier('Buffer')))
-            ]));
+            if (dep) {
+              path.unshiftContainer('body', t.variableDeclaration('var', [
+                t.variableDeclarator(t.identifier('Buffer'), t.memberExpression(dep, t.identifier('Buffer')))
+              ]));
+            }
           }
 
           /*
@@ -704,7 +708,10 @@ module.exports = function ({ types: t }) {
               );
             }
             else {
-              parentPath.replaceWith(addDependency(path, state, parentPath.node.arguments[0], isOptionalRequire(parentPath)));
+              const dep = addDependency(path, state, parentPath.node.arguments[0], isOptionalRequire(parentPath));
+              if (dep) {
+                parentPath.replaceWith(dep);
+              }
             }
           }
           else {
