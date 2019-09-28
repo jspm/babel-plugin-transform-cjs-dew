@@ -597,11 +597,11 @@ module.exports = function ({ types: t }) {
                 if (state.opts.browserOnly) {
                   if (resolved === null) {
                     // _nodeRequire(expr)
-                    path.replaceWith(t.callExpression(requireBinding), [expr]);
+                    path.parentPath.replaceWith(t.callExpression(requireBinding), [expr]);
                   }
                   else {
                     // './browser-string';
-                    path.replaceWith(t.stringLiteral(resolved));
+                    path.parentPath.replaceWith(t.stringLiteral(resolved));
                   }
                 }
                 else {
