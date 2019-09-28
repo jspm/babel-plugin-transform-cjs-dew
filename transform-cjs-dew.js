@@ -39,7 +39,7 @@ module.exports = function ({ types: t }) {
     const secondParent = path.parentPath && path.parentPath.parentPath;
     const fourthParent = secondParent.parentPath && secondParent.parentPath.parentPath;
     return secondParent && fourthParent &&
-        t.isTryStatement(fourthParent) && fourthParent.node.block.body.length === 1 &&
+        t.isTryStatement(fourthParent) && fourthParent.node.block.body.length >= 1 &&
         (t.isVariableDeclarator(path.parentPath) && t.isVariableDeclaration(secondParent) ||
          t.isAssignmentExpression(path.parentPath) && t.isExpressionStatement(secondParent));
   }
