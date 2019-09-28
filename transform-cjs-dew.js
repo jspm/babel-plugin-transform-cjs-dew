@@ -36,6 +36,8 @@ module.exports = function ({ types: t }) {
   // we detect optional require based on pattern matching:
   // try { const? x = require('x') } catch (e) { ... }
   function isOptionalRequire (path) {
+    if (t.isMemberExpression(path.parentPath))
+      return isOptionalRequire(path.parentPath);
     const secondParent = path.parentPath && path.parentPath.parentPath;
     const fourthParent = secondParent.parentPath && secondParent.parentPath.parentPath;
     return secondParent && fourthParent &&
