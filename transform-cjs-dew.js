@@ -599,7 +599,7 @@ module.exports = function ({ types: t }) {
                 if (state.opts.browserOnly) {
                   if (resolved === null) {
                     // _nodeRequire(expr)
-                    path.parentPath.replaceWith(t.callExpression(requireBinding), [expr]);
+                    path.parentPath.replaceWith(t.callExpression(requireBinding, [expr]));
                   }
                   else {
                     // './browser-string';
