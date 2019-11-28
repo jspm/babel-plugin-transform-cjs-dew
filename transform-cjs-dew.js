@@ -167,8 +167,11 @@ module.exports = function ({ types: t }) {
       if (dep.literal.value === depResolved)
         return requireSub(dep, state);
     }
-    let dew = true;
-    if (state.opts.esmDependencies && state.opts.esmDependencies(depResolved))
+    let dew = true, ns = false;
+    const esmDependency = state.opts.esmDependencies && state.opts.esmDependencies(depResolved);
+    if (esmDependency === 'namespace')
+      ns = true;
+    if (esmDependency)
       dew = false;
     const uidName = basename(depResolved);
     const uidExt = extname(uidName);
@@ -176,7 +179,8 @@ module.exports = function ({ types: t }) {
     const dep = {
       literal: t.stringLiteral(depResolved),
       id: t.identifier(depName + (dew ? 'Dew' : '')),
-      dew
+      dew,
+      ns
     };
     state.deps.push(dep)
     return requireSub(dep, state);
@@ -516,7 +520,7 @@ module.exports = function ({ types: t }) {
           state.deps.forEach(dep => {
             dewBodyWrapper.push(
               t.importDeclaration([
-                dep.dew ? t.importSpecifier(dep.id, dewIdentifier) : t.importDefaultSpecifier(dep.id)
+                dep.dew ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
               ], dep.literal)
             );
           });
