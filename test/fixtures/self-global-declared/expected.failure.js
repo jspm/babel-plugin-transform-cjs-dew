@@ -11,4 +11,17 @@ function p() {
 }
 
 exports = p();
+
+function () {
+  var global;
+  var self = 10;
+  _global.global = global = 5;
+
+  function p() {
+    return global;
+  }
+
+  exports = p();
+}()
+
 export default exports;

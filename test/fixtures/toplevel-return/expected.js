@@ -1,13 +1,12 @@
-var exports = {},
-    _dewExec = false;
-export function dew() {
-  if (_dewExec) return exports;
-  _dewExec = true;
-  if (1) return 0 && undefined;
+var exports = {};
+
+(function () {
+  if (1) return 0;
   if (2) return;
-  if (3) return (a && b || c) && undefined;
+  if (3) return a && b || c;
   {
-    return 5 && undefined;
+    return 5;
   }
-  return exports;
-}
+})();
+
+export default exports;

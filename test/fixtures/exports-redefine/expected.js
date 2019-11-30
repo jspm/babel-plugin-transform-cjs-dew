@@ -1,12 +1,7 @@
-var exports = {},
-    _dewExec = false;
+var exports = {};
 var module = {
   exports: exports
 };
-export function dew() {
-  if (_dewExec) return module.exports;
-  _dewExec = true;
-  var exports = 'asdf';
-  module.exports = 'asdf';
-  return module.exports;
-}
+var exports = 'asdf';
+module.exports = 'asdf';
+export default module.exports;

@@ -1,4 +1,5 @@
 module.exports = {
   filename: '\'blah.js\'',
-  dirname: '\'\''
+  dirname: '\'\'',
+  nowrap: true
 };

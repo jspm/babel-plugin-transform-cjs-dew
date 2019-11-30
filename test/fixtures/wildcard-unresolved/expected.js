@@ -1,10 +1,5 @@
-var exports = {},
-    _dewExec = false;
-export function dew() {
-  if (_dewExec) return exports;
-  _dewExec = true;
+var exports = {};
 
-  for (x of thing) require(`unknown/${x}`);
+for (x of thing) require(`unknown/${x}`);
 
-  return exports;
-}
+export default exports;

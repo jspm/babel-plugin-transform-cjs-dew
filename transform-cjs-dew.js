@@ -515,6 +515,70 @@ module.exports = function ({ types: t }) {
           /*
            * Construct the full body wrapper
            */
+          // path to ensure bindings are created for exports and __dew__
+          // tracking at https://github.com/babel/babel/issues/8358
+          function unshiftBody (path, newNode) {
+            const [newPath] = path.unshiftContainer('body', newNode);
+            if (t.isVariableDeclaration(newPath)) {
+              for (const decl of newPath.get('declarations')) {
+                path.scope.registerBinding(decl.node.id.name, decl.get('id'));
+              }
+            }
+          }
+          function pushBody (path, newNode) {
+            const [newPath] = path.pushContainer('body', newNode);
+            if (t.isVariableDeclaration(newPath)) {
+              for (const decl of newPath.get('declarations')) {
+                path.scope.registerBinding(decl.node.id.name, decl.get('id'));
+              }
+            }
+          }
+
+          if (state.opts.nowrap) {
+            state.inserting = true;
+
+            let curChildren;
+            if (state.topLevelReturn) {
+              curChildren = [];
+              for (const childPath of path.get('body')) {
+                curChildren.push(childPath);
+              }
+            } 
+
+            if (state.usesModule)
+              unshiftBody(path, moduleDeclarator);
+            unshiftBody(path, t.variableDeclaration('var', [
+              t.variableDeclarator(exportsIdentifier, t.objectExpression([]))
+            ]));
+            if (state.usesGlobal) {
+              unshiftBody(path, 
+                t.variableDeclaration('var', [t.variableDeclarator(state.globalIdentifier,
+                  t.conditionalExpression(globalThisPredicate, globalThis, t.conditionalExpression(ifSelfPredicate, selfIdentifier, t.identifier('global')))
+                )]));
+            }
+            for (const dep of state.deps) {
+              if (dep.dew)
+                throw new Error('Dew dependency ' + dep.literal.value + '. No wrap not currently supported when there are dew dependencies.');
+              unshiftBody(path, 
+                t.importDeclaration([
+                  dep.dew ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
+                ], dep.literal)
+              );
+            }
+            // top-level return still requires a wrapper
+            if (state.topLevelReturn) {
+              pushBody(path, 
+                t.expressionStatement(t.callExpression(t.functionExpression(null, [], t.blockStatement(curChildren.map(path => path.node))), []))
+              );
+              for (const path of curChildren)
+                path.remove();
+            }
+            pushBody(path,
+              t.exportDefaultDeclaration(state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier)
+            );
+            return;
+          }
+
           let dewBodyWrapper = [];
 
           state.deps.forEach(dep => {
@@ -565,16 +629,8 @@ module.exports = function ({ types: t }) {
 
           state.inserting = true;
           
-          // path to ensure bindings are created for exports and __dew__
-          // tracking at https://github.com/babel/babel/issues/8358
-          for (let i = 0; i < dewBodyWrapper.length; i++) {
-            const [newPath] = path.pushContainer('body', dewBodyWrapper[i]);
-            if (t.isVariableDeclaration(newPath)) {
-              for (const decl of newPath.get('declarations')) {
-                path.scope.registerBinding(decl.node.id.name, decl.get('id'));
-              }
-            }
-          }
+          for (let i = 0; i < dewBodyWrapper.length; i++)
+            pushBody(path, dewBodyWrapper[i]);
         }
       },
 
@@ -810,10 +866,15 @@ module.exports = function ({ types: t }) {
       ReturnStatement (path, state) {
         if (state.inserting)
           return;
-        if (state.functionDepth === 0 && path.node.argument) {
-          if (t.isLogicalExpression(path.node.argument) && t.isIdentifier(path.node.argument.right, { name: 'undefined' }))
-            return;
-          path.get('argument').replaceWith(t.logicalExpression('&&', path.node.argument, t.identifier('undefined')));
+        if (state.functionDepth === 0) {
+          if (state.opts.nowrap) {
+            state.topLevelReturn = true;
+          }
+          else if (path.node.argument) {
+            if (t.isLogicalExpression(path.node.argument) && t.isIdentifier(path.node.argument.right, { name: 'undefined' }))
+              return;
+            path.get('argument').replaceWith(t.logicalExpression('&&', path.node.argument, t.identifier('undefined')));
+          }
         }
       },
 

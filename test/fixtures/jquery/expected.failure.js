@@ -476,4 +476,372 @@ var exports = {};
   return jQuery;
 });
 
+function () {
+  (function (global, factory) {
+    "use strict";
+
+    if (typeof exports === "object") {
+      exports = global.document ? factory(global, true) : function (w) {
+        if (!w.document) {
+          throw new Error("jQuery requires a window with a document");
+        }
+
+        return factory(w);
+      };
+    } else {
+      factory(global);
+    }
+  })(typeof window !== "undefined" ? window : exports, function (window, noGlobal) {
+    "use strict";
+
+    var arr = [];
+    var document = window.document;
+    var getProto = Object.getPrototypeOf;
+    var slice = arr.slice;
+    var concat = arr.concat;
+    var push = arr.push;
+    var indexOf = arr.indexOf;
+    var class2type = {};
+    var toString = class2type.toString;
+    var hasOwn = class2type.hasOwnProperty;
+    var fnToString = hasOwn.toString;
+    var ObjectFunctionString = fnToString.call(Object);
+    var support = {};
+
+    function DOMEval(code, doc) {
+      doc = doc || document;
+      var script = doc.createElement("script");
+      script.text = code;
+      doc.head.appendChild(script).parentNode.removeChild(script);
+    }
+
+    var version = "3.2.1",
+        jQuery = function (selector, context) {
+      return new jQuery.fn.init(selector, context);
+    },
+        rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
+        rmsPrefix = /^-ms-/,
+        rdashAlpha = /-([a-z])/g,
+        fcamelCase = function (all, letter) {
+      return letter.toUpperCase();
+    };
+
+    jQuery.fn = jQuery.prototype = {
+      jquery: version,
+      constructor: jQuery,
+      length: 0,
+      toArray: function () {
+        return slice.call(this || _global);
+      },
+      get: function (num) {
+        if (num == null) {
+          return slice.call(this || _global);
+        }
+
+        return num < 0 ? (this || _global)[num + (this || _global).length] : (this || _global)[num];
+      },
+      pushStack: function (elems) {
+        var ret = jQuery.merge(this.constructor(), elems);
+        ret.prevObject = this || _global;
+        return ret;
+      },
+      each: function (callback) {
+        return jQuery.each(this || _global, callback);
+      },
+      map: function (callback) {
+        return this.pushStack(jQuery.map(this || _global, function (elem, i) {
+          return callback.call(elem, i, elem);
+        }));
+      },
+      slice: function () {
+        return this.pushStack(slice.apply(this || _global, arguments));
+      },
+      first: function () {
+        return this.eq(0);
+      },
+      last: function () {
+        return this.eq(-1);
+      },
+      eq: function (i) {
+        var len = (this || _global).length,
+            j = +i + (i < 0 ? len : 0);
+        return this.pushStack(j >= 0 && j < len ? [(this || _global)[j]] : []);
+      },
+      end: function () {
+        return (this || _global).prevObject || this.constructor();
+      },
+      push: push,
+      sort: arr.sort,
+      splice: arr.splice
+    };
+
+    jQuery.extend = jQuery.fn.extend = function () {
+      var options,
+          name,
+          src,
+          copy,
+          copyIsArray,
+          clone,
+          target = arguments[0] || {},
+          i = 1,
+          length = arguments.length,
+          deep = false;
+
+      if (typeof target === "boolean") {
+        deep = target;
+        target = arguments[i] || {};
+        i++;
+      }
+
+      if (typeof target !== "object" && !jQuery.isFunction(target)) {
+        target = {};
+      }
+
+      if (i === length) {
+        target = this || _global;
+        i--;
+      }
+
+      for (; i < length; i++) {
+        if ((options = arguments[i]) != null) {
+          for (name in options) {
+            src = target[name];
+            copy = options[name];
+
+            if (target === copy) {
+              continue;
+            }
+
+            if (deep && copy && (jQuery.isPlainObject(copy) || (copyIsArray = Array.isArray(copy)))) {
+              if (copyIsArray) {
+                copyIsArray = false;
+                clone = src && Array.isArray(src) ? src : [];
+              } else {
+                clone = src && jQuery.isPlainObject(src) ? src : {};
+              }
+
+              target[name] = jQuery.extend(deep, clone, copy);
+            } else if (copy !== undefined) {
+              target[name] = copy;
+            }
+          }
+        }
+      }
+
+      return target;
+    };
+
+    jQuery.extend({
+      expando: "jQuery" + (version + Math.random()).replace(/\D/g, ""),
+      isReady: true,
+      error: function (msg) {
+        throw new Error(msg);
+      },
+      noop: function () {},
+      isFunction: function (obj) {
+        return jQuery.type(obj) === "function";
+      },
+      isWindow: function (obj) {
+        return obj != null && obj === obj.window;
+      },
+      isNumeric: function (obj) {
+        var type = jQuery.type(obj);
+        return (type === "number" || type === "string") && !isNaN(obj - parseFloat(obj));
+      },
+      isPlainObject: function (obj) {
+        var proto, Ctor;
+
+        if (!obj || toString.call(obj) !== "[object Object]") {
+          return false;
+        }
+
+        proto = getProto(obj);
+
+        if (!proto) {
+          return true;
+        }
+
+        Ctor = hasOwn.call(proto, "constructor") && proto.constructor;
+        return typeof Ctor === "function" && fnToString.call(Ctor) === ObjectFunctionString;
+      },
+      isEmptyObject: function (obj) {
+        var name;
+
+        for (name in obj) {
+          return false;
+        }
+
+        return true;
+      },
+      type: function (obj) {
+        if (obj == null) {
+          return obj + "";
+        }
+
+        return typeof obj === "object" || typeof obj === "function" ? class2type[toString.call(obj)] || "object" : typeof obj;
+      },
+      globalEval: function (code) {
+        DOMEval(code);
+      },
+      camelCase: function (string) {
+        return string.replace(rmsPrefix, "ms-").replace(rdashAlpha, fcamelCase);
+      },
+      each: function (obj, callback) {
+        var length,
+            i = 0;
+
+        if (isArrayLike(obj)) {
+          length = obj.length;
+
+          for (; i < length; i++) {
+            if (callback.call(obj[i], i, obj[i]) === false) {
+              break;
+            }
+          }
+        } else {
+          for (i in obj) {
+            if (callback.call(obj[i], i, obj[i]) === false) {
+              break;
+            }
+          }
+        }
+
+        return obj;
+      },
+      trim: function (text) {
+        return text == null ? "" : (text + "").replace(rtrim, "");
+      },
+      makeArray: function (arr, results) {
+        var ret = results || [];
+
+        if (arr != null) {
+          if (isArrayLike(Object(arr))) {
+            jQuery.merge(ret, typeof arr === "string" ? [arr] : arr);
+          } else {
+            push.call(ret, arr);
+          }
+        }
+
+        return ret;
+      },
+      inArray: function (elem, arr, i) {
+        return arr == null ? -1 : indexOf.call(arr, elem, i);
+      },
+      merge: function (first, second) {
+        var len = +second.length,
+            j = 0,
+            i = first.length;
+
+        for (; j < len; j++) {
+          first[i++] = second[j];
+        }
+
+        first.length = i;
+        return first;
+      },
+      grep: function (elems, callback, invert) {
+        var callbackInverse,
+            matches = [],
+            i = 0,
+            length = elems.length,
+            callbackExpect = !invert;
+
+        for (; i < length; i++) {
+          callbackInverse = !callback(elems[i], i);
+
+          if (callbackInverse !== callbackExpect) {
+            matches.push(elems[i]);
+          }
+        }
+
+        return matches;
+      },
+      map: function (elems, callback, arg) {
+        var length,
+            value,
+            i = 0,
+            ret = [];
+
+        if (isArrayLike(elems)) {
+          length = elems.length;
+
+          for (; i < length; i++) {
+            value = callback(elems[i], i, arg);
+
+            if (value != null) {
+              ret.push(value);
+            }
+          }
+        } else {
+          for (i in elems) {
+            value = callback(elems[i], i, arg);
+
+            if (value != null) {
+              ret.push(value);
+            }
+          }
+        }
+
+        return concat.apply([], ret);
+      },
+      guid: 1,
+      proxy: function (fn, context) {
+        var tmp, args, proxy;
+
+        if (typeof context === "string") {
+          tmp = fn[context];
+          context = fn;
+          fn = tmp;
+        }
+
+        if (!jQuery.isFunction(fn)) {
+          return undefined;
+        }
+
+        args = slice.call(arguments, 2);
+
+        proxy = function () {
+          return fn.apply(context || this || _global, args.concat(slice.call(arguments)));
+        };
+
+        proxy.guid = fn.guid = fn.guid || jQuery.guid++;
+        return proxy;
+      },
+      now: Date.now,
+      support: support
+    });
+
+    if (typeof Symbol === "function") {
+      jQuery.fn[Symbol.iterator] = arr[Symbol.iterator];
+    }
+
+    if (typeof define === "function" && define.amd) {
+      define("jquery", [], function () {
+        return jQuery;
+      });
+    }
+
+    var _jQuery = window.jQuery,
+        _$ = window.$;
+
+    jQuery.noConflict = function (deep) {
+      if (window.$ === jQuery) {
+        window.$ = _$;
+      }
+
+      if (deep && window.jQuery === jQuery) {
+        window.jQuery = _jQuery;
+      }
+
+      return jQuery;
+    };
+
+    if (!noGlobal) {
+      window.jQuery = window.$ = jQuery;
+    }
+
+    return jQuery;
+  });
+}()
+
 export default exports;

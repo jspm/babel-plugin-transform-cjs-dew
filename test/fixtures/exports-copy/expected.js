@@ -1,12 +1,7 @@
-var exports = {},
-    _dewExec = false;
-export function dew() {
-  if (_dewExec) return exports;
-  _dewExec = true;
-  exports = exports = main;
+var exports = {};
+exports = exports = main;
 
-  function main() {}
+function main() {}
 
-  exports.another = 'export';
-  return exports;
-}
+exports.another = 'export';
+export default exports;
