@@ -557,8 +557,6 @@ module.exports = function ({ types: t }) {
                 )]));
             }
             for (const dep of state.deps) {
-              if (dep.dew)
-                throw new Error('Dew dependency ' + dep.literal.value + '. No wrap not currently supported when there are dew dependencies.');
               unshiftBody(path, 
                 t.importDeclaration([
                   dep.dew ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
