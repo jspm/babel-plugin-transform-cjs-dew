@@ -556,7 +556,8 @@ module.exports = function ({ types: t }) {
                   t.conditionalExpression(globalThisPredicate, globalThis, t.conditionalExpression(ifSelfPredicate, selfIdentifier, t.identifier('global')))
                 )]));
             }
-            for (const dep of state.deps) {
+            for (let i = state.deps.length - 1; i >= 0; i--) {
+              const dep = state.deps[i];
               unshiftBody(path, 
                 t.importDeclaration([
                   dep.dew ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
