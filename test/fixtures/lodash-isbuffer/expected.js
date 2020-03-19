@@ -14,7 +14,7 @@ export function dew() {
   /** Detect free variable `exports`. */
 
 
-  var freeExports = typeof exports == 'object' && exports && !exports.nodeType && exports;
+  var freeExports = typeof exports == "object" && exports && !exports.nodeType && exports;
   /** Detect free variable `module`. */
 
   var freeModule = freeExports && true && module && !module.nodeType && module;

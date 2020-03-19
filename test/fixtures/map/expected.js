@@ -11,6 +11,6 @@ export function dew() {
 
   var thing = _thingDew().thing;
 
-  if (process.env.NODE_ENV === 'production') var thingB = _bDew().b;
+  if (process.env.NODE_ENV === "production") var thingB = _bDew().b;
   return exports;
 }

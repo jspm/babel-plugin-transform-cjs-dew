@@ -24,9 +24,9 @@ export function dew() {
   var x;
 
   try {
-    x = _nodeRequire('x');
+    x = _nodeRequire("x");
   } catch (e) {}
 
-  if (x) console.log('Have optional');else console.log('No optional');
+  if (x) console.log("Have optional");else console.log("No optional");
   return exports;
 }

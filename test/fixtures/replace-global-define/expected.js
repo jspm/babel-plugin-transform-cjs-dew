@@ -5,7 +5,7 @@ export function dew() {
   _dewExec = true;
 
   if (define) {
-    if (typeof define === 'function' && define.amd) {
+    if (typeof define === "function" && define.amd) {
       define([], function () {
         return {};
       });

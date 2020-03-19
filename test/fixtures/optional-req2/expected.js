@@ -22,10 +22,10 @@ export function dew() {
   }();
 
   try {
-    var supportsColor = _nodeRequire('supports-color');
+    var supportsColor = _nodeRequire("supports-color");
 
     if (supportsColor) {
-      console.log('has supports color');
+      console.log("has supports color");
     }
   } catch (error) {}
 

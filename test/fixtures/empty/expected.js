@@ -23,12 +23,12 @@ export function dew() {
     }
   }();
 
-  var thing = _nodeRequire('thing');
+  var thing = _nodeRequire("thing");
 
   var another = _anotherDew();
 
   exports.y = function p() {
-    return _nodeRequire('thing');
+    return _nodeRequire("thing");
   };
 
   return exports;

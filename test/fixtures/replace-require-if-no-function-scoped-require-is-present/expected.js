@@ -13,7 +13,7 @@ export function dew() {
       _barDew();
     }
 
-    if (eval('typeof require') != 'undefined') {
+    if (eval("typeof require") != "undefined") {
       exports.cjs = true;
     }
   })();

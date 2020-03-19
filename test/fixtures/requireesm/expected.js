@@ -11,6 +11,6 @@ export function dew() {
   const {
     thing
   } = _thing;
-  readFileSync('asdf');
+  readFileSync("asdf");
   return exports;
 }

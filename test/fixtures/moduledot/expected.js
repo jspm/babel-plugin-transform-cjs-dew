@@ -18,6 +18,6 @@ export function dew() {
 
   _xDew();
 
-  [].push('asdf');
+  [].push("asdf");
   return exports;
 }

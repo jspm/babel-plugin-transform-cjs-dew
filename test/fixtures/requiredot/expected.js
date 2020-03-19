@@ -29,21 +29,21 @@ export function dew() {
     }
   }();
 
-  delete {}['asdf'];
+  delete {}["asdf"];
 
-  ({})['.yay'] = function () {};
+  ({})[".yay"] = function () {};
 
   if (undefined === module) {
-    console.log('cli');
+    console.log("cli");
   }
 
-  var path = _nodeRequire.resolve ? _nodeRequire.resolve('./asdf.js') : "/resolved";
+  var path = _nodeRequire.resolve ? _nodeRequire.resolve("./asdf.js") : "/resolved";
   fs.readFile(path);
   const indirect = _nodeRequire.resolve;
-  indirect('./x.js');
+  indirect("./x.js");
 
   if (_nodeRequire.resolve) {
-    console.log('Have require.resolve');
+    console.log("Have require.resolve");
   }
 
   return module.exports;

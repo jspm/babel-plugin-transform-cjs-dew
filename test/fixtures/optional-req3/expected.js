@@ -24,9 +24,9 @@ export function dew() {
   let convert;
 
   try {
-    convert = _nodeRequire('encoding').convert;
+    convert = _nodeRequire("encoding").convert;
   } catch (e) {}
 
-  if (x) console.log('Have optional');else console.log('No optional');
+  if (x) console.log("Have optional");else console.log("No optional");
   return exports;
 }

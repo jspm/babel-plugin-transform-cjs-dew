@@ -633,12 +633,14 @@ module.exports = function ({ types: t }) {
         }
       },
 
-      // octal upgrade
-      NumericLiteral (path, state) {
-        const raw = path.node.extra && path.node.extra.raw;
-        if (raw && raw[0] === '0' && parseInt(raw[1], 10).toString() === raw[1]) {
-          path.node.extra.raw = '0o' + path.node.extra.raw.slice(1);
-        }
+      // octal upgrades
+      NumericLiteral (path) {
+        if (path.node.extra)
+          delete path.node.extra;
+      },
+      StringLiteral (path) {
+        if (path.node.extra)
+          delete path.node.extra;
       },
 
       /*

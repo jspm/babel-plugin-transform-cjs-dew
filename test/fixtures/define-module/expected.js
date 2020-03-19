@@ -2,9 +2,9 @@ var exports = {};
 var module = {
   exports: exports
 };
-Object.defineProperty(module, 'exports', {
+Object.defineProperty(module, "exports", {
   get() {
-    return 'yo';
+    return "yo";
   }
 
 });

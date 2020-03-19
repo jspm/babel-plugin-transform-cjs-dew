@@ -13,13 +13,13 @@ export function dew() {
   var p;
 
   try {
-    p = _nullRequire('unknown');
+    p = _nullRequire("unknown");
   } catch (e) {
-    console.log('IT WAS NOT FOUND!');
+    console.log("IT WAS NOT FOUND!");
   }
 
   try {
-    var p = _nullRequire('it is not known');
+    var p = _nullRequire("it is not known");
   } catch (e) {
     throw e;
   }

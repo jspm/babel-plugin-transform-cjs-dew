@@ -23,6 +23,6 @@ export function dew() {
   }();
 
   var x = _nodeRequire;
-  x('asdf');
+  x("asdf");
   return exports;
 }

@@ -6,5 +6,5 @@ function main() {
   _outerDew();
 }
 
-exports.another = 'export';
+exports.another = "export";
 export default exports;

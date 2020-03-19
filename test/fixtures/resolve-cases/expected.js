@@ -26,12 +26,12 @@ export function dew() {
     }
   }();
 
-  _nodeRequire.resolve ? _nodeRequire.resolve('./x') : "/base/x";
+  _nodeRequire.resolve ? _nodeRequire.resolve("./x") : "/base/x";
   _nodeRequire.resolve ? _nodeRequire.resolve(`./x`) : "/base/x";
 
   (_nodeRequire.resolve || _nodeRequire)(`./x/${thing}`);
 
-  _nodeRequire.resolve ? _nodeRequire.resolve('../x' + '/y') : "/x/y";
+  _nodeRequire.resolve ? _nodeRequire.resolve("../x" + "/y") : "/x/y";
 
   (_nodeRequire.resolve || _nodeRequire)(x);
 

@@ -1,4 +1,4 @@
 var exports = {};
 var module;
-module.exports = 'asdf';
+module.exports = "asdf";
 export default exports;

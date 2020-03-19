@@ -35,7 +35,8 @@ describe('Transformations', () => {
           assert.equal(actual.trim().replace(/\r\n|\n\r/g, '\n'), expected.trim().replace(/\r\n|\n\r/g, '\n'));
         }
         catch (e) {
-          fs.writeFileSync(path.join(fixtureDir, 'expected.failure.js'), actual.trim());
+          if (process.env.UPDATE_FIXTURES)
+            fs.writeFileSync(path.join(fixtureDir, 'expected.js'), actual.trim());
           throw e;
         }
       }

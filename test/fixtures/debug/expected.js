@@ -14,7 +14,7 @@ export function dew() {
    *
    * Expose `debug()` as the module.
    */
-  exports = exports = createDebug.debug = createDebug['default'] = createDebug;
+  exports = exports = createDebug.debug = createDebug["default"] = createDebug;
   exports.coerce = coerce;
   exports.disable = disable;
   exports.enable = enable;
@@ -88,20 +88,20 @@ export function dew() {
 
       args[0] = exports.coerce(args[0]);
 
-      if ('string' !== typeof args[0]) {
+      if ("string" !== typeof args[0]) {
         // anything else let's inspect with %O
-        args.unshift('%O');
+        args.unshift("%O");
       } // apply any `formatters` transformations
 
 
       var index = 0;
       args[0] = args[0].replace(/%([a-zA-Z%])/g, function (match, format) {
         // if we encounter an escaped % then don't increase the array index
-        if (match === '%%') return match;
+        if (match === "%%") return match;
         index++;
         var formatter = exports.formatters[format];
 
-        if ('function' === typeof formatter) {
+        if ("function" === typeof formatter) {
           var val = args[index];
           match = formatter.call(self, val); // now we need to remove `args[index]` since it's inlined in the `format`
 
@@ -123,7 +123,7 @@ export function dew() {
     debug.color = selectColor(namespace);
     debug.destroy = destroy; // env-specific initialization logic for debug instances
 
-    if ('function' === typeof exports.init) {
+    if ("function" === typeof exports.init) {
       exports.init(debug);
     }
 
@@ -155,18 +155,18 @@ export function dew() {
     exports.names = [];
     exports.skips = [];
     var i;
-    var split = (typeof namespaces === 'string' ? namespaces : '').split(/[\s,]+/);
+    var split = (typeof namespaces === "string" ? namespaces : "").split(/[\s,]+/);
     var len = split.length;
 
     for (i = 0; i < len; i++) {
       if (!split[i]) continue; // ignore empty strings
 
-      namespaces = split[i].replace(/\*/g, '.*?');
+      namespaces = split[i].replace(/\*/g, ".*?");
 
-      if (namespaces[0] === '-') {
-        exports.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
+      if (namespaces[0] === "-") {
+        exports.skips.push(new RegExp("^" + namespaces.substr(1) + "$"));
       } else {
-        exports.names.push(new RegExp('^' + namespaces + '$'));
+        exports.names.push(new RegExp("^" + namespaces + "$"));
       }
     }
 
@@ -183,7 +183,7 @@ export function dew() {
 
 
   function disable() {
-    exports.enable('');
+    exports.enable("");
   }
   /**
    * Returns true if the given mode name is enabled, false otherwise.
@@ -195,7 +195,7 @@ export function dew() {
 
 
   function enabled(name) {
-    if (name[name.length - 1] === '*') {
+    if (name[name.length - 1] === "*") {
       return true;
     }
 

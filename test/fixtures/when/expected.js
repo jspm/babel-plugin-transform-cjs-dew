@@ -66,7 +66,7 @@ export function dew() {
 
       when.lift = lift; // lift a function to return promises
 
-      when['try'] = attempt; // call a function and return a promise
+      when["try"] = attempt; // call a function and return a promise
 
       when.attempt = attempt; // alias for when.try
 
@@ -219,7 +219,7 @@ export function dew() {
 
 
       function isPromiseLike(x) {
-        return x && typeof x.then === 'function';
+        return x && typeof x.then === "function";
       }
       /**
        * Return a promise that will resolve only once all the supplied arguments
@@ -293,7 +293,7 @@ export function dew() {
 
       return when;
     });
-  })(typeof define === 'function' && define.amd ? define : function (factory) {
+  })(typeof define === "function" && define.amd ? define : function (factory) {
     exports = factory();
   });
 

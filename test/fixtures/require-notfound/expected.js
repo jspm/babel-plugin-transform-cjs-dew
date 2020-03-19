@@ -21,7 +21,7 @@ export function dew() {
     }
   }();
 
-  _nodeRequire('unknown');
+  _nodeRequire("unknown");
 
   return exports;
 }

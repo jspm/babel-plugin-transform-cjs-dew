@@ -3,6 +3,7 @@ var exports = {},
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-  const x = 0o10;
+  const x = 8;
+  const y = "\0";
   return exports;
 }

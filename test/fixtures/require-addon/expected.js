@@ -22,7 +22,7 @@ export function dew() {
     }
   }();
 
-  _nodeRequire('./addon.node');
+  _nodeRequire("./addon.node");
 
   return exports;
 }

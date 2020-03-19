@@ -3,5 +3,5 @@ exports = exports = main;
 
 function main() {}
 
-exports.another = 'export';
+exports.another = "export";
 export default exports;

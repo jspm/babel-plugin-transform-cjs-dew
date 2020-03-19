@@ -24,7 +24,7 @@ export function dew() {
 
   var require = _nodeRequire;
 
-  require('asdf');
+  require("asdf");
 
   return exports;
 }
