@@ -282,6 +282,8 @@ module.exports = function ({ types: t }) {
     visitor: {
       Program: {
         enter (path, state) {
+          state.source = path.getSource();
+
           if (path.hub.file.shebang)
             path.hub.file.shebang = '';
 
@@ -730,6 +732,28 @@ module.exports = function ({ types: t }) {
       LabeledStatement (path) {
         if (t.isFunctionDeclaration(path.node.body))
           path.replaceWith(path.node.body);
+      },
+
+      // with statement eval
+      WithStatement (path, state) {
+        let scope = path.scope;
+        let allBindings = new Set();
+        do {
+          for (const name of Object.keys(scope.bindings)) {
+            allBindings.add(name);
+          }
+        } while (scope = scope.parentScope);
+        const id = path.scope.generateUidIdentifier();
+        path.replaceWith(t.expressionStatement(t.callExpression(
+          t.newExpression(t.identifier('Function'), [
+            t.stringLiteral(id.name),
+            ...[...allBindings].map(name => t.stringLiteral(name)),
+            t.templateLiteral([
+              t.templateElement({ raw: `with (${id.name}) { ${state.source.slice(path.node.body.start, path.node.body.end)} }` })
+            ], [])
+          ]),
+          [path.node.object, ...[...allBindings].map(name => t.identifier(name))]
+        )));
       },
 
       /*
