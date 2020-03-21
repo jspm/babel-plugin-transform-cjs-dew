@@ -726,6 +726,12 @@ module.exports = function ({ types: t }) {
         }
       },
 
+      // labelled function declarations not ES6
+      LabeledStatement (path) {
+        if (t.isFunctionDeclaration(path.node.body))
+          path.replaceWith(path.node.body);
+      },
+
       /*
        * process / Buffer become imports
        * global renames to global alias
