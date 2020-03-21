@@ -756,6 +756,28 @@ module.exports = function ({ types: t }) {
         )));
       },
 
+      FunctionDeclaration (path, state) {
+        const binding = path.scope.getBinding(path.node.id.name);
+        if (!binding)
+          return;
+        let removedSelf = false;
+        for (const refPath of binding.constantViolations) {
+          if (t.isVariableDeclarator(refPath.node)) {
+            if (t.isIdentifier(refPath.node.id) && refPath.node.init === null)
+              refPath.remove();
+          }
+          else if (t.isFunctionDeclaration(refPath.node)) {
+            if (refPath.node.start < path.node.start) {
+              refPath.remove();
+            }
+            else if (!removedSelf) {
+              removedSelf = true;
+              path.remove();
+            }
+          }
+        }
+      },
+
       /*
        * process / Buffer become imports
        * global renames to global alias
