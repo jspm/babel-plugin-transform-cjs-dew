@@ -749,7 +749,7 @@ module.exports = function ({ types: t }) {
             t.stringLiteral(id.name),
             ...[...allBindings].map(name => t.stringLiteral(name)),
             t.templateLiteral([
-              t.templateElement({ raw: `with (${id.name}) { ${state.source.slice(path.node.body.start, path.node.body.end)} }` })
+              t.templateElement({ raw: `with (${id.name}) { ${state.source.slice(path.node.body.start, path.node.body.end).replace(/`/g, '\\`')} }` })
             ], [])
           ]),
           [path.node.object, ...[...allBindings].map(name => t.identifier(name))]
