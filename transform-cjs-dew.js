@@ -11,7 +11,7 @@ function getNodeRequireBinding (path, state) {
   return state.nodeRequireBinding;
 }
 
-const strictReserved = ["implements", "interface", "let", "package", "private", "protected", "public", "static", "yield"];
+const strictReserved = ["implements", "interface", "let", "package", "private", "protected", "public", "static", "yield", "arguments"];
 
 module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
@@ -766,7 +766,7 @@ module.exports = function ({ types: t }) {
             if (t.isIdentifier(refPath.node.id) && refPath.node.init === null)
               refPath.remove();
           }
-          else if (t.isFunctionDeclaration(refPath.node)) {
+          else if (t.isFunctionDeclaration(refPath.node) && path.node) {
             if (refPath.node.start < path.node.start) {
               refPath.remove();
             }
