@@ -353,9 +353,14 @@ module.exports = function ({ types: t }) {
           if (!t.isConditionalExpression(arg) ||
               !t.isLogicalExpression(arg.test, { operator: '&&' }) ||
               !t.isBinaryExpression(arg.test.left, { operator: '===' }) ||
-              !t.isUnaryExpression(arg.test.left.left, { operator: 'typeof' }) ||
-              !t.isIdentifier(arg.test.left.left.argument, { name: 'define' }) ||
-              !t.isStringLiteral(arg.test.left.right, { value: 'function' }) ||
+              !(
+                (t.isUnaryExpression(arg.test.left.left, { operator: 'typeof' }) &&
+                  t.isIdentifier(arg.test.left.left.argument, { name: 'define' }) &&
+                  t.isStringLiteral(arg.test.left.right, { value: 'function' })) ||
+                (t.isUnaryExpression(arg.test.left.right, { operator: 'typeof' }) &&
+                  t.isIdentifier(arg.test.left.right.argument, { name: 'define' }) &&
+                  t.isStringLiteral(arg.test.left.left, { value: 'function' }))
+              ) ||
               !t.isMemberExpression(arg.test.right, { computed: false }) ||
               !t.isIdentifier(arg.test.right.object) ||
               !t.isIdentifier(arg.test.right.property, { name: 'amd' }) ||
