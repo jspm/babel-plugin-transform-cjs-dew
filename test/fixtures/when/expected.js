@@ -293,7 +293,7 @@ export function dew() {
 
       return when;
     });
-  })(typeof define === "function" && define.amd ? define : function (factory) {
+  })(function (factory) {
     exports = factory();
   });
 

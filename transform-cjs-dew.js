@@ -241,23 +241,37 @@ module.exports = function ({ types: t }) {
       }
     }
     // if we have a direct boolean in an IfStatement, remove the falsy branch
-    else if (t.isIfStatement(parentNode) && path.node === parentNode.test && t.isBooleanLiteral(parentNode.test)) {
-      let consequent = path.parentPath.get('consequent');
-      let alternate = path.parentPath.get('alternate');
+    else if (t.isIfStatement(parentNode) && path.node === parentNode.test) {
+      let knownPredicate = false;
+      let truthy = false;
 
-      path.stop();
-
-      if (parentNode.test.value) {
-        if (alternate.node)
-          alternate.remove();
-        path.parentPath.replaceWith(consequent);
+      if (t.isBooleanLiteral(parentNode.test)) {
+        knownPredicate = true;
+        truthy = parentNode.test.value;
       }
-      else {
-        consequent.remove();
-        if (alternate.node)
-          path.parentPath.replaceWith(alternate);
-        else
-          path.parentPath.remove();
+      if (t.isIdentifier(parentNode.test, { name: 'undefined' })) {
+        knownPredicate = true;
+        truthy = false;
+      }
+
+      if (knownPredicate) {
+        let consequent = path.parentPath.get('consequent');
+        let alternate = path.parentPath.get('alternate');
+  
+        path.stop();
+  
+        if (truthy) {
+          if (alternate.node)
+            alternate.remove();
+          path.parentPath.replaceWith(consequent);
+        }
+        else {
+          consequent.remove();
+          if (alternate.node)
+            path.parentPath.replaceWith(alternate);
+          else
+            path.parentPath.remove();
+        }  
       }
     }
     // if we have a direct boolean in a ConditionalExpression, inline the truthy branch
@@ -271,6 +285,12 @@ module.exports = function ({ types: t }) {
         path.parentPath.replaceWith(consequent);
       else
         path.parentPath.replaceWith(alternate);
+    }
+    else if (t.isUnaryExpression(parentNode) && parentNode.operator === 'typeof') {
+      if (t.isIdentifier(path.node, { name: 'undefined' })) {
+        path.parentPath.replaceWith(t.stringLiteral('undefined'));
+        dce(path.parentPath);
+      }
     }
   }
 
@@ -403,7 +423,15 @@ module.exports = function ({ types: t }) {
            */
           if (!state.usesModule) {
             state.moduleDotExports.forEach(moduleDotExport => {
-              moduleDotExport.replaceWith(exportsIdentifier);
+              const parentNode = moduleDotExport.parentPath.node;
+              if (t.isUnaryExpression(parentNode, { operator: 'typeof' })) {
+                moduleDotExport.parentPath.replaceWith(t.stringLiteral('object'));
+                dce(moduleDotExport.parentPath);
+              }
+              else {
+                moduleDotExport.replaceWith(exportsIdentifier);
+                dce(moduleDotExport);
+              }
             });
           }
 
@@ -931,6 +959,10 @@ module.exports = function ({ types: t }) {
           state.usesGlobal = true;
           path.replaceWith(state.globalIdentifier);
         }
+        else if (identifierName === 'define' && !path.scope.hasBinding('define')) {
+          path.replaceWith(t.identifier('undefined'));
+          dce(path);
+        }
       },
 
       /*
@@ -1007,20 +1039,26 @@ module.exports = function ({ types: t }) {
       UnaryExpression (path, state) {
         if (state.inserting)
           return;
-        if (path.node.operator === 'typeof' && t.isIdentifier(path.node.argument)) {
-          let identifierName = path.node.argument.name;
-          if (identifierName === 'require' && !path.scope.hasBinding(identifierName)) {
-            path.replaceWith(t.stringLiteral('function'));
-            dce(path);
-          }
-          else if (identifierName === 'module' && !path.scope.hasBinding(identifierName)) {
-            path.replaceWith(t.stringLiteral('object'))
-            dce(path);
-          }
-          else if (!state.isStrict && !path.scope.hasBinding(identifierName)) {
-            // note all typeof x to do conversion into typeof _global.x if a strict assignment later
-            (state.strictGlobalTypeofPaths[identifierName] = state.strictGlobalTypeofPaths[identifierName] || [])
-            .push(path.get('argument'));
+        if (path.node.operator === 'typeof') {
+          if (t.isIdentifier(path.node.argument)) {
+            let identifierName = path.node.argument.name;
+            if (identifierName === 'require' && !path.scope.hasBinding(identifierName)) {
+              path.replaceWith(t.stringLiteral('function'));
+              dce(path);
+            }
+            else if (identifierName === 'module' && !path.scope.hasBinding(identifierName)) {
+              path.replaceWith(t.stringLiteral('object'));
+              dce(path);
+            }
+            else if (identifierName === 'exports' && !path.scope.hasBinding(identifierName)) {
+              path.replaceWith(t.stringLiteral('object'));
+              dce(path);
+            }
+            else if (!state.isStrict && !path.scope.hasBinding(identifierName)) {
+              // note all typeof x to do conversion into typeof _global.x if a strict assignment later
+              (state.strictGlobalTypeofPaths[identifierName] = state.strictGlobalTypeofPaths[identifierName] || [])
+              .push(path.get('argument'));
+            }
           }
         }
         if (path.node.operator === 'delete' && t.isIdentifier(path.node.argument)) {

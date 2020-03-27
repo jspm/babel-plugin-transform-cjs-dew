@@ -18,7 +18,7 @@ var exports = {};
 (function (global, factory) {
   "use strict";
 
-  if (typeof exports === "object") {
+  {
     // For CommonJS and CommonJS-like environments where a proper `window`
     // is present, execute the factory and get jQuery.
     // For environments that do not have a `window` with a `document`
@@ -33,10 +33,7 @@ var exports = {};
 
       return factory(w);
     };
-  } else {
-    factory(global);
   } // Pass this if window is not defined yet
-
 })(typeof window !== "undefined" ? window : exports, function (window, noGlobal) {
   // Edge <= 12 - 13+, Firefox <=18 - 45+, IE 10 - 11, Safari 5.1 - 9+, iOS 6 - 9.1
   // throw exceptions when non-strict code (e.g., ASP.NET 4.5) accesses strict mode
@@ -442,12 +439,6 @@ var exports = {};
   // AMD loader is present. jQuery is a special case. For more information, see
   // https://github.com/jrburke/requirejs/wiki/Updating-existing-libraries#wiki-anon
 
-
-  if (typeof define === "function" && define.amd) {
-    define("jquery", [], function () {
-      return jQuery;
-    });
-  }
 
   var // Map over jQuery in case of overwrite
   _jQuery = window.jQuery,
