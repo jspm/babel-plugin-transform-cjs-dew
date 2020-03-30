@@ -11,7 +11,10 @@ function getNodeRequireBinding (path, state) {
   return state.nodeRequireBinding;
 }
 
-const strictReserved = ["implements", "interface", "let", "package", "private", "protected", "public", "static", "yield", "arguments", "eval"];
+const strictReserved = Object.assign(
+  Object.create(null),
+  {"implements":1, "interface":1, "let":1, "package":1, "private":1, "protected":1, "public":1, "static":1, "yield":1, "arguments":1, "eval":1 }
+);
 
 module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
@@ -814,9 +817,25 @@ module.exports = function ({ types: t }) {
       BindingIdentifier (path, state) {
         if (state.inserting)
           return;
+        // duplicate function args
+        if ((t.isFunctionDeclaration(path.parentPath.node) || t.isFunctionExpression(path.parentPath.node)) &&
+            path.parentPath.node !== path.node) {
+          const params = path.parentPath.node.params;
+          const usedParams = new Set();
+          for (let i = params.length - 1; i >= 0; i--) {
+            const param = params[i];
+            // duplicates only supported for identifiers
+            if (!t.isIdentifier(param))
+              break;
+            if (usedParams.has(param.name))
+              path.parentPath.get(`params.${i}`).replaceWith(path.scope.generateUidIdentifier(param.name));
+            else
+              usedParams.add(param.name);
+          }
+        }
+        // reserved identifiers
         let identifierName = path.node.name;
-
-        if (strictReserved.includes(identifierName)) {
+        if (strictReserved[identifierName]) {
           path.scope.rename(identifierName);
           return;
         }
