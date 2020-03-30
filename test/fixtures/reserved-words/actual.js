@@ -9,3 +9,5 @@ function p (implements) {
   var { let } = o;
   console.log(let);
 }
+
+const eval = 'wat';

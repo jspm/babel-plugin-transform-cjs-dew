@@ -17,5 +17,6 @@ export function dew() {
     console.log(_let);
   }
 
+  const _eval = "wat";
   return exports;
 }

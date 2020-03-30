@@ -11,7 +11,7 @@ function getNodeRequireBinding (path, state) {
   return state.nodeRequireBinding;
 }
 
-const strictReserved = ["implements", "interface", "let", "package", "private", "protected", "public", "static", "yield", "arguments"];
+const strictReserved = ["implements", "interface", "let", "package", "private", "protected", "public", "static", "yield", "arguments", "eval"];
 
 module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
