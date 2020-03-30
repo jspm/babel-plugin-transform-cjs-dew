@@ -799,8 +799,11 @@ module.exports = function ({ types: t }) {
         let removedSelf = false;
         for (const refPath of binding.constantViolations) {
           if (t.isVariableDeclarator(refPath.node)) {
-            if (t.isIdentifier(refPath.node.id) && refPath.node.init === null)
+            if (t.isIdentifier(refPath.node.id) && refPath.node.init === null) {
+              const name = refPath.node.id.name;
               refPath.remove();
+              path.parentPath.scope.registerBinding(name, path.get('id'));
+            }
           }
           else if (t.isFunctionDeclaration(refPath.node) && path.node) {
             if (refPath.node.start < path.node.start) {
