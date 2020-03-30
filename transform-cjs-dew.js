@@ -811,6 +811,17 @@ module.exports = function ({ types: t }) {
         }
       },
 
+      BindingIdentifier (path, state) {
+        if (state.inserting)
+          return;
+        let identifierName = path.node.name;
+
+        if (strictReserved.includes(identifierName)) {
+          path.scope.rename(identifierName);
+          return;
+        }
+      },
+
       /*
        * process / Buffer become imports
        * global renames to global alias
@@ -820,11 +831,6 @@ module.exports = function ({ types: t }) {
         if (state.inserting)
           return;
         let identifierName = path.node.name;
-
-        if (strictReserved.includes(identifierName)) {
-          path.scope.rename(identifierName);
-          return;
-        }
 
         // either a member "x" about to be referenced more deeply
         // ot a direct identifier "y"

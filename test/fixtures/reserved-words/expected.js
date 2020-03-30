@@ -7,6 +7,7 @@ export function dew() {
   p(_package);
 
   function p(_implements) {
+    var _arguments = "asdf";
     var o = {
       let: _implements
     };
