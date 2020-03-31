@@ -799,10 +799,22 @@ module.exports = function ({ types: t }) {
         let removedSelf = false;
         for (const refPath of binding.constantViolations) {
           if (t.isVariableDeclarator(refPath.node)) {
-            if (t.isIdentifier(refPath.node.id) && refPath.node.init === null) {
-              const name = refPath.node.id.name;
-              refPath.remove();
-              path.parentPath.scope.registerBinding(name, path.get('id'));
+            if (t.isIdentifier(refPath.node.id)) {
+              if (t.isForOfStatement(refPath.parentPath.parentPath) ||
+                  t.isForInStatement(refPath.parentPath.parentPath)) {
+                refPath.parentPath.replaceWith(refPath.node.id);
+              }
+              else if (t.isForStatement(refPath.parentPath.parentPath)) {
+                if (refPath.node.init === null)
+                  refPath.parentPath.replaceWith(refPath.node.id);
+                else
+                  refPath.parentPath.replaceWith(t.assignmentExpression('=', refPath.node.id, refPath.node.init));
+              }
+              else if (refPath.node.init === null) {
+                const name = refPath.node.id.name;
+                refPath.remove();
+                path.parentPath.scope.registerBinding(name, path.get('id'));
+              }
             }
           }
           else if (t.isFunctionDeclaration(refPath.node) && path.node) {
@@ -958,7 +970,9 @@ module.exports = function ({ types: t }) {
               // require alternative
               case 'require':
                 if (t.isCallExpression(parentPath.parent) && parentPath.parent.callee === parentPath.node) {
-                  parentPath.parentPath.replaceWith(addDependency(parentPath, state, parentPath.parent.arguments[0], isOptionalRequire(parentPath.parentPath)));
+                  const dep = addDependency(parentPath, state, parentPath.parent.arguments[0], isOptionalRequire(parentPath.parentPath));
+                  if (dep)
+                    parentPath.parentPath.replaceWith(dep);
                 }
                 else {
                   state.usesDynamicRequire = true;
@@ -1062,7 +1076,8 @@ module.exports = function ({ types: t }) {
             let strictGlobalTypeofPaths = state.strictGlobalTypeofPaths[identifierName];
             if (strictGlobalTypeofPaths)
               strictGlobalTypeofPaths.forEach(path => {
-                path.replaceWith(t.memberExpression(state.globalIdentifier, path.node));
+                if (t.isIdentifier(path.node))
+                  path.replaceWith(t.memberExpression(state.globalIdentifier, path.node));
               });
             path.scope.getProgramParent().push({ id: path.node.left });
             path.replaceWith(t.assignmentExpression('=', t.memberExpression(state.globalIdentifier, path.node.left), path.node));
