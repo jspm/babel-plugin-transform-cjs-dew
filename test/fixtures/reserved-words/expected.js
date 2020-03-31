@@ -15,6 +15,9 @@ export function dew() {
       let: _let
     } = o;
     console.log(_let);
+    return {
+      await: function _await() {}
+    };
   }
 
   const _eval = "wat";

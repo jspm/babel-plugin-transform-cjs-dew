@@ -8,6 +8,11 @@ function p (implements) {
   };
   var { let } = o;
   console.log(let);
+  return {
+    await: function await () {
+
+    }
+  };
 }
 
 const eval = 'wat';
