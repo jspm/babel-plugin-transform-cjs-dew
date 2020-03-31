@@ -902,7 +902,13 @@ module.exports = function ({ types: t }) {
             else {
               const dep = addDependency(path, state, parentPath.node.arguments[0], isOptionalRequire(parentPath));
               if (dep) {
-                parentPath.replaceWith(dep);
+                try {
+                  parentPath.replaceWith(dep);
+                }
+                catch (e) {
+                  if (e.message !== 'Container is falsy')
+                    throw e;
+                }
               }
             }
           }
