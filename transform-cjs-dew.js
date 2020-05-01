@@ -466,6 +466,12 @@ module.exports = function ({ types: t }) {
             if (state.opts.browserOnly) {
               const e = t.identifier('e');
               const id = t.identifier('id');
+              if (state.requireResolve) {
+                path.unshiftContainer('body', t.expressionStatement(t.assignmentExpression('=', 
+                  t.memberExpression(state.nodeRequireBinding, t.identifier('resolve')),
+                  state.nodeRequireBinding
+                )));
+              }
               path.unshiftContainer('body', t.functionDeclaration(state.nodeRequireBinding, [id], t.blockStatement([
                 t.variableDeclaration('var', [
                   t.variableDeclarator(e, t.newExpression(t.identifier('Error'), [
@@ -684,6 +690,16 @@ module.exports = function ({ types: t }) {
       },
 
       /*
+       * Support eval('require')
+       */
+      CallExpression (path, state) {
+        if (t.isIdentifier(path.node.callee, { name: 'eval' }) && !path.scope.getBinding('eval') &&
+            path.node.arguments.length === 1 && t.isStringLiteral(path.node.arguments[0], { value: 'require' })) {
+          path.replaceWith(t.identifier('require'));
+        }
+      },
+
+      /*
        * Define plugin
        * Detect unsupported require lookups
        */
@@ -733,7 +749,7 @@ module.exports = function ({ types: t }) {
                   }
                 }
               }
-              // non-call of require.resolve -> support only in Node.js case
+              // non-call of require.resolve
               else {
                 state.requireResolve = true;
                 path.get('object').replaceWith(getNodeRequireBinding(path,  state));
@@ -925,13 +941,10 @@ module.exports = function ({ types: t }) {
             }
           }
           else {
-            // dynamic require -> node require
-            // path.replaceWith(t.nullLiteral());
-            // dce(path);
+            // require escape
             if (!t.isMemberExpression(path.parentPath) || path.parentPath.node.object !== path.node) {
-              if (!state.opts.browserOnly) {
-                path.replaceWith(getNodeRequireBinding(path, state));
-              }
+              state.requireResolve = true;
+              path.replaceWith(getNodeRequireBinding(path, state));
             }
           }
         }
