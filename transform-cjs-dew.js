@@ -326,6 +326,7 @@ module.exports = function ({ types: t }) {
 
           state.define = {};
           state.opts.resolve = state.opts.resolve || (m => m);
+          state.opts.namedExports = state.opts.namedExports || [];
           if (state.opts.define)
             Object.keys(state.opts.define).forEach(defineName => {
               let parts = defineName.split('.');
@@ -621,6 +622,14 @@ module.exports = function ({ types: t }) {
             pushBody(path,
               t.exportDefaultDeclaration(state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier)
             );
+
+            if (state.opts.namedExports && state.opts.namedExports.length) {
+              const exportDeclarations = state.opts.namedExports.map(name => {
+                const id = t.identifier(name);
+                return t.variableDeclarator(id, t.memberExpression(exportsIdentifier, id));
+              });
+              pushBody(path, t.exportNamedDeclaration(t.variableDeclaration('const', exportDeclarations), []));
+            }
             return;
           }
 
@@ -765,6 +774,12 @@ module.exports = function ({ types: t }) {
             break;
             default:
               path.replaceWith(t.identifier('undefined'));
+          }
+        }
+        else if (t.isIdentifier(path.node.object, { name: 'exports', }) && !path.scope.hasBinding('exports')) {
+          if (t.isIdentifier(path.node.property)) {
+            if (state.opts.namedExports.indexOf(path.node.property.name) === -1)
+              state.opts.namedExports.push(path.node.property.name);
           }
         }
       },

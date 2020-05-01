@@ -1,0 +1,3 @@
+{
+  esmExports: true
+}
