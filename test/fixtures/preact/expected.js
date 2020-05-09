@@ -357,6 +357,5 @@ export const render = exports.render,
       toChildArray = exports.toChildArray,
       _e = exports._e,
       options = exports.options;
-const _h = exports.h,
-      _default = exports.default;
-export { _h as h, _default as default };
+const _h = exports.h;
+export { _h as h };
