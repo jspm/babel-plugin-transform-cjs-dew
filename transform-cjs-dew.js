@@ -624,11 +624,26 @@ module.exports = function ({ types: t }) {
             );
 
             if (state.opts.namedExports && state.opts.namedExports.length) {
-              const exportDeclarations = state.opts.namedExports.map(name => {
+              const exportDeclarations = [];
+              const namedExports = [];
+              const varDeclarations = [];
+              for (const name of state.opts.namedExports) {
                 const id = t.identifier(name);
-                return t.variableDeclarator(id, t.memberExpression(exportsIdentifier, id));
-              });
-              pushBody(path, t.exportNamedDeclaration(t.variableDeclaration('const', exportDeclarations), []));
+                if (!path.scope.hasBinding(name)) {
+                  exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(exportsIdentifier, id)));
+                }
+                else {
+                  const uid = path.scope.generateUidIdentifier(name);
+                  varDeclarations.push(t.variableDeclarator(uid, t.memberExpression(exportsIdentifier, id)));
+                  namedExports.push(t.exportSpecifier(uid, id));
+                }
+              }
+              if (exportDeclarations.length)
+                pushBody(path, t.exportNamedDeclaration(t.variableDeclaration('const', exportDeclarations), []));
+              if (varDeclarations.length)
+                pushBody(path, t.variableDeclaration('const', varDeclarations), []);
+              if (namedExports.length)
+                pushBody(path, t.exportNamedDeclaration(null, namedExports));
             }
             return;
           }
