@@ -343,6 +343,7 @@ n = {
   };
   return u.Consumer.contextType = u, u.Provider.__ = u, u;
 }, exports.toChildArray = _, exports._e = j, exports.options = n;
+exports.default = 0;
 export default exports;
 export const render = exports.render,
       hydrate = exports.hydrate,
@@ -356,5 +357,6 @@ export const render = exports.render,
       toChildArray = exports.toChildArray,
       _e = exports._e,
       options = exports.options;
-const _h = exports.h;
-export { _h as h };
+const _h = exports.h,
+      _default = exports.default;
+export { _h as h, _default as default };

@@ -13,7 +13,7 @@ function getNodeRequireBinding (path, state) {
 
 const strictReserved = Object.assign(
   Object.create(null),
-  {"implements":1, "interface":1, "let":1, "package":1, "private":1, "protected":1, "public":1, "static":1, "yield":1, "arguments":1, "eval":1, "await":1 }
+  {"implements":1, "interface":1, "let":1, "package":1, "private":1, "protected":1, "public":1, "static":1, "yield":1, "arguments":1, "eval":1, "await":1, "default":1 }
 );
 
 module.exports = function ({ types: t }) {
@@ -629,7 +629,7 @@ module.exports = function ({ types: t }) {
               const varDeclarations = [];
               for (const name of state.opts.namedExports) {
                 const id = t.identifier(name);
-                if (!path.scope.hasBinding(name)) {
+                if (!path.scope.hasBinding(name) && !strictReserved[name]) {
                   exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(exportsIdentifier, id)));
                 }
                 else {
