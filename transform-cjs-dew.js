@@ -628,8 +628,6 @@ module.exports = function ({ types: t }) {
               const namedExports = [];
               const varDeclarations = [];
               for (const name of state.opts.namedExports) {
-                if (name === 'default')
-                  continue;
                 const id = t.identifier(name);
                 if (!path.scope.hasBinding(name) && !strictReserved[name]) {
                   exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(exportsIdentifier, id)));
@@ -795,7 +793,7 @@ module.exports = function ({ types: t }) {
         }
         else if (t.isIdentifier(path.node.object, { name: 'exports', }) && !path.scope.hasBinding('exports')) {
           if (t.isIdentifier(path.node.property)) {
-            if (state.opts.namedExports.indexOf(path.node.property.name) === -1)
+            if (state.opts.namedExports.indexOf(path.node.property.name) === -1 && path.node.property.name !== 'default')
               state.opts.namedExports.push(path.node.property.name);
           }
         }
