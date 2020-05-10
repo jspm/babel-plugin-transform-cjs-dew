@@ -11,14 +11,17 @@ function getNodeRequireBinding (path, state) {
   return state.nodeRequireBinding;
 }
 
-const strictReserved = Object.assign(
-  Object.create(null),
-  {"implements":1, "interface":1, "let":1, "package":1, "private":1, "protected":1, "public":1, "static":1, "yield":1, "arguments":1, "eval":1, "await":1 }
-);
+const strictReservedOrKeyword = Object.assign(
+  Object.create(null), {
+  // strict reserved
+  "implements":1, "interface":1, "let":1, "package":1, "private":1, "protected":1, "public":1, "static":1, "yield":1, "arguments":1, "eval":1, "await":1, "enum":1,
+  // keyword
+  "break":1, "case":1, "catch":1, "continue":1, "debugger":1, "default":1, "do":1, "else":1, "finally":1, "for":1, "function":1, "if":1, "return":1, "switch":1, "throw":1, "try":1, "var":1, "while":1, "with":1, "null":1, "true":1, "false":1, "instanceof":1, "typeof":1, "void":1, "delete":1, "new":1, "in":1, "this":1, "const":1, "class":1, "extends":1, "export":1, "import":1, "super":1
+});
 
 module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
-  exportsIdentifier.own = true;
+  // exportsIdentifier.own = true;
   const moduleIdentifier = t.identifier('module');
   const dewIdentifier = t.identifier('dew');
 
@@ -629,7 +632,7 @@ module.exports = function ({ types: t }) {
               const varDeclarations = [];
               for (const name of state.opts.namedExports) {
                 const id = t.identifier(name);
-                if (!path.scope.hasBinding(name) && !strictReserved[name]) {
+                if (!path.scope.hasBinding(name) && !strictReservedOrKeyword[name]) {
                   exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(exportsIdentifier, id)));
                 }
                 else {
@@ -896,7 +899,7 @@ module.exports = function ({ types: t }) {
         }
         // reserved identifiers
         let identifierName = path.node.name;
-        if (strictReserved[identifierName]) {
+        if (strictReservedOrKeyword[identifierName]) {
           path.scope.rename(identifierName);
           return;
         }
