@@ -21,7 +21,6 @@ const strictReservedOrKeyword = Object.assign(
 
 module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
-  // exportsIdentifier.own = true;
   const moduleIdentifier = t.identifier('module');
   const dewIdentifier = t.identifier('dew');
 
