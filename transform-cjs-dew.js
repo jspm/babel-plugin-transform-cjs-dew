@@ -328,7 +328,6 @@ module.exports = function ({ types: t }) {
 
           state.define = {};
           state.opts.resolve = state.opts.resolve || (m => m);
-          state.opts.namedExports = state.opts.namedExports || [];
           if (state.opts.define)
             Object.keys(state.opts.define).forEach(defineName => {
               let parts = defineName.split('.');
@@ -621,9 +620,11 @@ module.exports = function ({ types: t }) {
               for (const path of curChildren)
                 path.remove();
             }
-            pushBody(path,
-              t.exportDefaultDeclaration(state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier)
-            );
+
+            if (!state.opts.namedExports || !state.opts.namedExports.includes('default'))
+              pushBody(path,
+                t.exportDefaultDeclaration(state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier)
+              );
 
             if (state.opts.namedExports && state.opts.namedExports.length) {
               const exportDeclarations = [];
@@ -631,7 +632,13 @@ module.exports = function ({ types: t }) {
               const varDeclarations = [];
               for (const name of state.opts.namedExports) {
                 const id = t.identifier(name);
-                if (!path.scope.hasBinding(name) && !strictReservedOrKeyword[name]) {
+                if (name === 'default') {
+                  const exports = state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier;
+                  pushBody(path, t.exportDefaultDeclaration(
+                    t.conditionalExpression(t.memberExpression(exports, t.identifier('__esModule')), t.memberExpression(exports, id), exports)
+                  ));
+                }
+                else if (!path.scope.hasBinding(name) && !strictReservedOrKeyword[name]) {
                   exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(exportsIdentifier, id)));
                 }
                 else {
@@ -791,12 +798,6 @@ module.exports = function ({ types: t }) {
             break;
             default:
               path.replaceWith(t.identifier('undefined'));
-          }
-        }
-        else if (t.isIdentifier(path.node.object, { name: 'exports', }) && !path.scope.hasBinding('exports')) {
-          if (t.isIdentifier(path.node.property)) {
-            if (state.opts.namedExports.indexOf(path.node.property.name) === -1 && path.node.property.name !== 'default')
-              state.opts.namedExports.push(path.node.property.name);
           }
         }
       },

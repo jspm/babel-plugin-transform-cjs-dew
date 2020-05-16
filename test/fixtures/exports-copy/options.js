@@ -1,3 +1,4 @@
 module.exports = {
-  nowrap: true
+  nowrap: true,
+  namedExports: ['another', 'package', 'default']
 };
