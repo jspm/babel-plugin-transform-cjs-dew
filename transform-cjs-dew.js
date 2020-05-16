@@ -635,7 +635,14 @@ module.exports = function ({ types: t }) {
                 if (name === 'default') {
                   const exports = state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier;
                   pushBody(path, t.exportDefaultDeclaration(
-                    t.conditionalExpression(t.memberExpression(exports, t.identifier('__esModule')), t.memberExpression(exports, id), exports)
+                    t.conditionalExpression(
+                      t.logicalExpression('&&',
+                        t.memberExpression(exports, t.identifier('__esModule')),
+                        t.callExpression(t.memberExpression(t.memberExpression(t.identifier('Object'), t.identifier('hasOwnProperty')), t.identifier('call')), [exports, t.stringLiteral('default')])
+                      ),
+                      t.memberExpression(exports, id),
+                      exports
+                    )
                   ));
                 }
                 else if (!path.scope.hasBinding(name) && !strictReservedOrKeyword[name]) {
