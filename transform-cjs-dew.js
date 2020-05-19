@@ -24,7 +24,7 @@ const strictReservedOrKeyword = Object.assign(
 const transformIds = Object.assign(
   Object.create(null), {
     // transform-specific!
-    "process":1, "buffer":1, "global":1, "exports":1, "module":1
+    "process":1, "Buffer":1, "global":1, "exports":1, "module":1
 });
 
 module.exports = function ({ types: t }) {
