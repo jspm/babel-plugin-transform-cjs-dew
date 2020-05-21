@@ -748,7 +748,7 @@ module.exports = function ({ types: t }) {
        * Support eval('require')
        */
       CallExpression (path, state) {
-        if (t.isIdentifier(path.node.callee, { name: 'eval' }) && !path.scope.getBinding('eval') &&
+        if (!state.opts.browserOnly && t.isIdentifier(path.node.callee, { name: 'eval' }) && !path.scope.getBinding('eval') &&
             path.node.arguments.length === 1 && t.isStringLiteral(path.node.arguments[0], { value: 'require' })) {
           path.replaceWith(t.identifier('require'));
         }

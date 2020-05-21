@@ -1,3 +1,3 @@
 module.exports = {
-  browserOnly: true
+  browserOnly: false
 };
