@@ -930,6 +930,11 @@ module.exports = function ({ types: t }) {
           return;
         let identifierName = path.node.name;
 
+        if (state.argsId && identifierName === 'arguments' && path.scope.getBinding(identifierName) === undefined && state.functionDepth > 0) {
+          path.replaceWith(state.argsId);
+          return;
+        }
+
         // either a member "x" about to be referenced more deeply
         // ot a direct identifier "y"
         if (state.define.hasOwnProperty(identifierName)) {
@@ -1122,6 +1127,21 @@ module.exports = function ({ types: t }) {
           return;
         if (t.isIdentifier(path.node.left)) {
           let identifierName = path.node.left.name;
+
+          // arguments assignment
+          if (identifierName === 'arguments' && path.scope.getBinding(identifierName) === undefined && state.functionDepth > 0) {
+            let fnPath = path;
+            while (fnPath.parent && !((t.isFunctionDeclaration(fnPath.parent) || t.isFunctionExpression(fnPath.parent)) && fnPath.parent.body === fnPath.node))
+              fnPath = fnPath.parentPath;
+
+            if (fnPath.parent) {
+              const uid = path.scope.generateUidIdentifier('arguments');
+              fnPath.unshiftContainer('body', [t.variableDeclaration('let', [t.variableDeclarator(uid, t.identifier('arguments'))])]);
+              state.argsId = uid;
+              path.get('left').replaceWith(uid);
+            }
+            return;
+          }
 
           /*
            * Strict conversion (should really be extended to all assignment forms: destructuring, update expression, iterator assignment)
