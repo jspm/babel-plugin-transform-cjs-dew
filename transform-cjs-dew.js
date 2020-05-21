@@ -61,6 +61,13 @@ module.exports = function ({ types: t }) {
          t.isAssignmentExpression(path.parentPath) && t.isExpressionStatement(secondParent));
   }
 
+  function getFunctionScope (path) {
+    let fnPath = path;
+    while (fnPath.parent && !((t.isFunctionDeclaration(fnPath.parent) || t.isFunctionExpression(fnPath.parent)) && fnPath.parent.body === fnPath.node))
+      fnPath = fnPath.parentPath;
+    return fnPath.parent && fnPath;
+  }
+
   const cjsScopeVars = ['require', 'module', 'exports', '__filename', '__dirname'];
 
   function resolvePartialWildcardString (node, lastIsWildcard, exprs) {
@@ -931,7 +938,9 @@ module.exports = function ({ types: t }) {
         let identifierName = path.node.name;
 
         if (state.argsId && identifierName === 'arguments' && path.scope.getBinding(identifierName) === undefined && state.functionDepth > 0) {
-          path.replaceWith(state.argsId);
+          const fnPath = getFunctionScope(path);
+          if (fnPath.node === state.argsFn)
+            path.replaceWith(state.argsId);
           return;
         }
 
@@ -1130,14 +1139,12 @@ module.exports = function ({ types: t }) {
 
           // arguments assignment
           if (identifierName === 'arguments' && path.scope.getBinding(identifierName) === undefined && state.functionDepth > 0) {
-            let fnPath = path;
-            while (fnPath.parent && !((t.isFunctionDeclaration(fnPath.parent) || t.isFunctionExpression(fnPath.parent)) && fnPath.parent.body === fnPath.node))
-              fnPath = fnPath.parentPath;
-
-            if (fnPath.parent) {
+            const fnPath = getFunctionScope(path);
+            if (fnPath) {
               const uid = path.scope.generateUidIdentifier('arguments');
               fnPath.unshiftContainer('body', [t.variableDeclaration('let', [t.variableDeclarator(uid, t.identifier('arguments'))])]);
               state.argsId = uid;
+              state.argsFn = fnPath.node;
               path.get('left').replaceWith(uid);
             }
             return;
