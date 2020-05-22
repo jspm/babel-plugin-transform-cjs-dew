@@ -13,8 +13,8 @@ var exports = {};
 (function () {
   function x() {}
 
-  var x = 10;
-  var x = 11; // 11
+  x = 10;
+  x = 11; // 11
 
   console.log(x);
 })();
@@ -36,7 +36,7 @@ var exports = {};
 })();
 
 (function () {
-  var x = 5;
+  x = 5;
 
   function x() {} // 5
 
