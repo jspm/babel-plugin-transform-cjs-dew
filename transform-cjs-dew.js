@@ -862,7 +862,8 @@ module.exports = function ({ types: t }) {
         // if there are function declarations after this one,
         // remove this and them except the last
         if (binding.constantViolations.length) {
-          const fnPaths = [path, ...binding.constantViolations]
+          const includesThisPath = binding.constantViolations.some(refPath => refPath.node === path.node);
+          const fnPaths = [...includesThisPath ? [] : [path], ...binding.constantViolations]
             .filter(path => t.isFunctionDeclaration(path.node))
             .sort((pathA, pathB) => pathA.node.start > pathB.node.start ? 1 : -1);
 
