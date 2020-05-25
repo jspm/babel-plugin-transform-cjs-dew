@@ -892,10 +892,7 @@ module.exports = function ({ types: t }) {
                 refPath.remove();
                 path.parentPath.scope.registerBinding(name, path.get('id'));
               }
-              else if (!refPath.parentPath.node.declarations) {
-                console.log(refPath.parentPath.node);
-              }
-              else if (refPath.parentPath.node.declarations.length === 1) {
+              else if (refPath.parentPath.node.declarations && refPath.parentPath.node.declarations.length === 1) {
                 refPath.parentPath.replaceWith(t.expressionStatement(t.assignmentExpression('=', refPath.node.id, refPath.node.init)));
               }
             }
