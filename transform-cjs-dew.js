@@ -858,7 +858,22 @@ module.exports = function ({ types: t }) {
         const binding = path.scope.getBinding(path.node.id.name);
         if (!binding)
           return;
-        let removedSelf = false;
+
+        // if there are function declarations after this one,
+        // remove this and them except the last
+        if (binding.constantViolations.length) {
+          const fnPaths = [path, ...binding.constantViolations]
+            .filter(path => t.isFunctionDeclaration(path.node))
+            .sort((pathA, pathB) => pathA.node.start > pathB.node.start ? 1 : -1);
+
+          if (fnPaths.length > 1) {
+            fnPaths.pop();
+            for (const refPath of fnPaths)
+              refPath.remove();
+          }
+        }
+
+        // replace all duplicate vars with assignments
         for (const refPath of binding.constantViolations) {
           if (t.isVariableDeclarator(refPath.node)) {
             if (t.isIdentifier(refPath.node.id)) {
@@ -880,15 +895,6 @@ module.exports = function ({ types: t }) {
               else if (refPath.parentPath.node.declarations.length === 1) {
                 refPath.parentPath.replaceWith(t.expressionStatement(t.assignmentExpression('=', refPath.node.id, refPath.node.init)));
               }
-            }
-          }
-          else if (t.isFunctionDeclaration(refPath.node) && path.node) {
-            if (refPath.node.start < path.node.start) {
-              refPath.remove();
-            }
-            else if (!removedSelf) {
-              removedSelf = true;
-              path.remove();
             }
           }
         }
