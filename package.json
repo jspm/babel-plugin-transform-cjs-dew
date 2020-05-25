@@ -10,13 +10,13 @@
   "license": "MIT",
   "main": "transform-cjs-dew.js",
   "devDependencies": {
-    "@babel/core": "^7.0.0",
+    "@babel/core": "^7.9.6",
     "mocha": "^3.4.2"
   },
   "scripts": {
     "test": "mocha"
   },
   "dependencies": {
-    "@babel/parser": "^7.1.0"
+    "@babel/parser": "^7.9.6"
   }
 }
