@@ -1,6 +1,6 @@
 'use strict';
 
-var create;
+var create, other;
 
 console.log(create);
 

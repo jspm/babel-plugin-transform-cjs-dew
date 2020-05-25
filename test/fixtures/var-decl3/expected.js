@@ -9,3 +9,5 @@ function asdf(obj) {
 
 asdf();
 export default exports;
+const _asdf = exports.asdf;
+export { _asdf as asdf };
