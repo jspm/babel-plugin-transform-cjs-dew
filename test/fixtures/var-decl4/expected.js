@@ -1,5 +1,4 @@
 var exports = {};
-var create;
 console.log(create);
 
 function create() {}

@@ -855,6 +855,8 @@ module.exports = function ({ types: t }) {
       },
 
       FunctionDeclaration (path, state) {
+        if (state.inserting)
+          return;
         const binding = path.scope.getBinding(path.node.id.name);
         if (!binding)
           return;
@@ -896,6 +898,37 @@ module.exports = function ({ types: t }) {
               else if (refPath.parentPath.node.declarations && refPath.parentPath.node.declarations.length === 1) {
                 refPath.parentPath.replaceWith(t.expressionStatement(t.assignmentExpression('=', refPath.node.id, refPath.node.init)));
               }
+            }
+          }
+        }
+      },
+
+      VariableDeclarator (path, state) {
+        if (state.inserting)
+          return;
+        const binding = path.scope.getBinding(path.node.id.name);
+        if (!binding)
+          return;
+
+        if (binding.constantViolations.some(path => t.isFunction(path.node))) {
+          if (t.isIdentifier(path.node.id)) {
+            if (t.isForOfStatement(path.parentPath.parentPath) ||
+                t.isForInStatement(path.parentPath.parentPath)) {
+              path.parentPath.replaceWith(path.node.id);
+            }
+            else if (t.isForStatement(path.parentPath.parentPath)) {
+              if (path.node.init === null)
+                path.parentPath.replaceWith(path.node.id);
+              else
+                path.parentPath.replaceWith(t.assignmentExpression('=', path.node.id, path.node.init));
+            }
+            else if (path.node.init === null) {
+              const name = path.node.id.name;
+              path.remove();
+              // path.parentPath.scope.registerBinding(name, path.get('id'));
+            }
+            else if (path.parentPath.node.declarations && path.parentPath.node.declarations.length === 1) {
+              path.parentPath.replaceWith(t.expressionStatement(t.assignmentExpression('=', path.node.id, path.node.init)));
             }
           }
         }
