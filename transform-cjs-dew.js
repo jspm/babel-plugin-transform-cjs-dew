@@ -31,12 +31,18 @@ module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
   const moduleIdentifier = t.identifier('module');
   const dewIdentifier = t.identifier('dew');
+  const dewInterop = t.identifier('__dew');
+  const defaultIdentifier = t.identifier('default');
 
   const globalThis = t.identifier('globalThis');
   const globalThisPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', globalThis), t.stringLiteral('undefined'));
   const selfIdentifier = t.identifier('self');
   const ifSelfPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', selfIdentifier), t.stringLiteral('undefined'));
   const requireSub = (dep) => {
+    if (dep.dew && dep.ns) {
+      const interopExpression = t.memberExpression(dep.id, dewInterop);
+      return t.conditionalExpression(interopExpression, t.callExpression(interopExpression, []), t.memberExpression(dep.id, defaultIdentifier));
+    }
     return dep.dew ? t.callExpression(dep.id, []) : dep.id;
   };
   const nodeRequire = (path, state, depNode) => {
@@ -191,16 +197,18 @@ module.exports = function ({ types: t }) {
     }
     let dew = true, ns = false;
     const esmDependency = state.opts.esmDependencies && state.opts.esmDependencies(depResolved);
-    if (esmDependency === 'namespace')
-      ns = true;
-    if (esmDependency)
+    if (esmDependency === 'interop')
+      dew = true, ns = true;
+    else if (esmDependency === 'namespace')
+      ns = true, dew =false;
+    else if (esmDependency)
       dew = false;
     const uidName = basename(depResolved);
     const uidExt = extname(uidName);
     const depName = path.scope.getProgramParent().generateUidIdentifier(uidName.substr(0, uidName.length - uidExt.length)).name;
     const dep = {
       literal: t.stringLiteral(depResolved),
-      id: t.identifier(depName + (dew ? 'Dew' : '')),
+      id: t.identifier(depName + (dew && !ns ? 'Dew' : '')),
       dew,
       ns
     };
@@ -623,7 +631,7 @@ module.exports = function ({ types: t }) {
               const dep = state.deps[i];
               unshiftBody(path, 
                 t.importDeclaration([
-                  dep.dew ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
+                  dep.dew && !dep.ns ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
                 ], dep.literal)
               );
             }
@@ -675,7 +683,7 @@ module.exports = function ({ types: t }) {
           state.deps.forEach(dep => {
             dewBodyWrapper.push(
               t.importDeclaration([
-                dep.dew ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
+                dep.dew && !dep.ns ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
               ], dep.literal)
             );
           });
@@ -1027,7 +1035,7 @@ module.exports = function ({ types: t }) {
               parentPath.replaceWith(
                 t.callExpression(
                   t.memberExpression(t.callExpression(t.import(), parentPath.node.arguments), t.identifier('then')),
-                  [t.arrowFunctionExpression([t.identifier('m')], t.memberExpression(t.identifier('m'), t.identifier('default')))]
+                  [t.arrowFunctionExpression([t.identifier('m')], t.memberExpression(t.identifier('m'), defaultIdentifier))]
                 )
               );
             }
