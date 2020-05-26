@@ -1007,7 +1007,12 @@ module.exports = function ({ types: t }) {
         /*
          * Require support
          */
-        if (identifierName === 'require' && !path.scope.hasBinding('require')) {
+        function isRequireFunctionWrapper (binding) {
+          if (!binding)
+            return false;
+          return t.isFunction(binding.path.parent) && binding.path.parent.params[0] === binding.path.node;
+        }
+        if (identifierName === 'require' && (!path.scope.hasBinding('require') || isRequireFunctionWrapper(path.scope.getBinding('require')))) {
           let parentPath = path.parentPath;
           if (t.isCallExpression(parentPath) && parentPath.node.callee === path.node) {
             const parentParentNode = parentPath.parentPath && parentPath.parentPath.node;
@@ -1042,12 +1047,17 @@ module.exports = function ({ types: t }) {
           else {
             // require escape
             if (!t.isMemberExpression(path.parentPath) || path.parentPath.node.object !== path.node) {
-              state.requireResolve = true;
-              path.replaceWith(getNodeRequireBinding(path, state));
+              if (!state.opts.browserOnly) {
+                state.requireResolve = true;
+                path.replaceWith(getNodeRequireBinding(path, state));
+              }
+              else {
+                path.replaceWith(t.identifier('null'));
+              }
             }
           }
         }
-        else if (identifierName === '__non_webpack_require__') {
+        else if (!state.opts.browserOnly && identifierName === '__non_webpack_require__') {
           path.replaceWith(getNodeRequireBinding(path, state));
         }
         else if (!state.hasProcess && identifierName === 'process' && !path.scope.hasBinding('process')) {
