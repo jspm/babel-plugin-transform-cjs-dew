@@ -1,4 +1,3 @@
-var exports = {};
 asdf();
 asdf();
 asdf();
@@ -8,6 +7,6 @@ function asdf(obj) {
 }
 
 asdf();
-export default exports;
+export default {};
 const _asdf = exports.asdf;
 export { _asdf as asdf };

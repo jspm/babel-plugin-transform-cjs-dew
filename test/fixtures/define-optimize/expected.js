@@ -1,5 +1,2 @@
-var exports = {};
-{
-  b();
-}
-export default exports;
+b();
+export default {};

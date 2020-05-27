@@ -1,5 +1,3 @@
-var exports = {};
-
 function p() {}
 
 for (p of [1, 2, 3]) {
@@ -18,4 +16,4 @@ for (p = 1; p <= 3; p++) {
   console.log(p);
 }
 
-export default exports;
+export default {};

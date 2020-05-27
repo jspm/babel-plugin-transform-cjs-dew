@@ -291,11 +291,16 @@ module.exports = function ({ types: t }) {
         if (truthy) {
           if (alternate.node)
             alternate.remove();
-          path.parentPath.replaceWith(consequent);
+          if (t.isBlockStatement(consequent.node) && consequent.node.body.length === 1 && t.isExpressionStatement(consequent.node.body[0]))
+            path.parentPath.replaceWith(consequent.node.body[0]);
+          else
+            path.parentPath.replaceWith(consequent);
         }
         else {
           consequent.remove();
-          if (alternate.node)
+          if (t.isBlockStatement(alternate.node) && alternate.node.body.length === 1 && t.isExpressionStatement(alternate.node.body[0]))
+            path.parentPath.replaceWith(alternate.node.body[0]);
+          else if (alternate.node)
             path.parentPath.replaceWith(alternate);
           else
             path.parentPath.remove();
@@ -385,6 +390,7 @@ module.exports = function ({ types: t }) {
           state.globalIdentifier = path.scope.generateUidIdentifier('global');
           state.usesGlobal = false;
           state.usesModule = false;
+          state.usesExports = false;
           state.usesDynamicRequire = false;
           state.moduleDotExports = [];
           state.inserting = false;
@@ -446,17 +452,32 @@ module.exports = function ({ types: t }) {
         exit (path, state) {
           state.functionDepth = -1;
 
+          let needsExports = true;
+          let returnExports = true;
+
           /*
            * Replace module.exports with exports if module not used
            */
           if (!state.usesModule) {
+            needsExports = !state.usesExports && state.opts.nowrap ? false : true;
+            returnExports = needsExports;
             state.moduleDotExports.forEach(moduleDotExport => {
               const parentNode = moduleDotExport.parentPath.node;
               if (t.isUnaryExpression(parentNode, { operator: 'typeof' })) {
                 moduleDotExport.parentPath.replaceWith(t.stringLiteral('object'));
                 dce(moduleDotExport.parentPath);
               }
+              else if (t.isExpressionStatement(moduleDotExport.parentPath.parentPath.node) &&
+                  t.isAssignmentExpression(parentNode, { operator: '=' }) &&
+                  parentNode.left === moduleDotExport.node &&
+                  t.isIdentifier(parentNode.right) &&
+                  state.deps.some(dep => parentNode.right === dep.id)) {
+                returnExports = true;
+                moduleDotExport.parentPath.parentPath.replaceWith(t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, moduleDotExport.parentPath.node.right)]));
+              }
               else {
+                needsExports = true;
+                returnExports = true;
                 moduleDotExport.replaceWith(exportsIdentifier);
                 dce(moduleDotExport);
               }
@@ -618,9 +639,10 @@ module.exports = function ({ types: t }) {
 
             if (state.usesModule)
               unshiftBody(path, moduleDeclarator);
-            unshiftBody(path, t.variableDeclaration('var', [
-              t.variableDeclarator(exportsIdentifier, t.objectExpression([]))
-            ]));
+            if (needsExports)
+              unshiftBody(path, t.variableDeclaration('var', [
+                t.variableDeclarator(exportsIdentifier, t.objectExpression([]))
+              ]));
             if (state.usesGlobal) {
               unshiftBody(path, 
                 t.variableDeclaration('var', [t.variableDeclarator(state.globalIdentifier,
@@ -646,7 +668,7 @@ module.exports = function ({ types: t }) {
 
             if (!state.opts.namedExports || !state.opts.namedExports.includes('default'))
               pushBody(path,
-                t.exportDefaultDeclaration(state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier)
+                t.exportDefaultDeclaration(state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : returnExports ? exportsIdentifier : t.objectExpression([]))
               );
 
             if (state.opts.namedExports && state.opts.namedExports.length) {
@@ -970,6 +992,9 @@ module.exports = function ({ types: t }) {
           path.scope.rename(identifierName);
           return;
         }
+
+        if (identifierName === 'exports' && !path.scope.hasBinding(identifierName))
+          state.usesExports = true;
       },
 
       /*
@@ -1141,6 +1166,9 @@ module.exports = function ({ types: t }) {
           path.replaceWith(t.identifier('undefined'));
           dce(path);
         }
+        else if (identifierName === 'exports' && !path.scope.hasBinding('exports')) {
+          state.usesExports = true;
+        }
       },
 
       /*
@@ -1168,6 +1196,7 @@ module.exports = function ({ types: t }) {
         if (state.inserting)
           return;
         if (state.functionDepth === 0) {
+          state.usesExports = true;
           path.replaceWith(exportsIdentifier);
         }
         else if (!state.isStrict) {

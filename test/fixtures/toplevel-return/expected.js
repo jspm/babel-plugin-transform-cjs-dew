@@ -1,5 +1,3 @@
-var exports = {};
-
 (function () {
   if (1) return 0;
   if (2) return;
@@ -9,4 +7,4 @@ var exports = {};
   }
 })();
 
-export default exports;
+export default {};

@@ -1,4 +1,3 @@
-var exports = {};
 var define;
 
 if (define) {
@@ -9,4 +8,4 @@ if (define) {
   }
 }
 
-export default exports;
+export default {};

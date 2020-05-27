@@ -1,5 +1,3 @@
-var exports = {};
-
 // General rule:
 // - last function declaration is implicit assignment
 // - var statements after first are assignments
@@ -44,4 +42,4 @@ var exports = {};
   console.log(x);
 })();
 
-export default exports;
+export default {};

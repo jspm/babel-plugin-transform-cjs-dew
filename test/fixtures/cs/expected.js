@@ -1,5 +1,3 @@
-var exports = {};
-
 function x() {}
 
-export default exports;
+export default {};
