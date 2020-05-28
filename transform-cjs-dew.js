@@ -452,36 +452,65 @@ module.exports = function ({ types: t }) {
         exit (path, state) {
           state.functionDepth = -1;
 
+          let exportsReturn = state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier;
           let needsExports = true;
-          let returnExports = true;
 
           /*
            * Replace module.exports with exports if module not used
            */
+          function isRequireAssign (moduleDotExport) {
+            const parentNode = moduleDotExport.parentPath.node;
+            return t.isExpressionStatement(moduleDotExport.parentPath.parentPath.node) &&
+                t.isAssignmentExpression(parentNode, { operator: '=' }) &&
+                parentNode.left === moduleDotExport.node &&
+                t.isIdentifier(parentNode.right) &&
+                state.deps.some(dep => parentNode.right === dep.id)
+          }
           if (!state.usesModule) {
-            needsExports = !state.usesExports && state.opts.nowrap ? false : true;
-            returnExports = needsExports;
-            state.moduleDotExports.forEach(moduleDotExport => {
-              const parentNode = moduleDotExport.parentPath.node;
-              if (t.isUnaryExpression(parentNode, { operator: 'typeof' })) {
+            if (!state.usesExports && state.opts.nowrap)
+              needsExports = state.moduleDotExports.some(moduleDotExport => !isRequireAssign(moduleDotExport) && !t.isUnaryExpression(moduleDotExport.parentPath.node, { operator: 'typeof' }));
+
+            if (!needsExports) {
+              const requireAssign = state.moduleDotExports.find(isRequireAssign);
+              const onlyExport = state.moduleDotExports.every(moduleDotExport => moduleDotExport === requireAssign || t.isUnaryExpression(moduleDotExport.parentPath.node, { operator: 'typeof' }));
+
+              if (requireAssign && onlyExport && requireAssign.parentPath &&
+                  requireAssign.parentPath.parentPath && requireAssign.parentPath.parentPath.node &&
+                  requireAssign.parentPath.parentPath.parentPath &&
+                  requireAssign.parentPath.parentPath.parentPath.node === path.node) {
+                exportsReturn = null;
+              }
+              else if (!requireAssign) {
+                exportsReturn = t.objectExpression([]);
+              }
+            }
+
+            for (const moduleDotExport of state.moduleDotExports) {
+              if (t.isUnaryExpression(moduleDotExport.parentPath.node, { operator: 'typeof' })) {
                 moduleDotExport.parentPath.replaceWith(t.stringLiteral('object'));
                 dce(moduleDotExport.parentPath);
               }
-              else if (t.isExpressionStatement(moduleDotExport.parentPath.parentPath.node) &&
-                  t.isAssignmentExpression(parentNode, { operator: '=' }) &&
-                  parentNode.left === moduleDotExport.node &&
-                  t.isIdentifier(parentNode.right) &&
-                  state.deps.some(dep => parentNode.right === dep.id)) {
-                returnExports = true;
-                moduleDotExport.parentPath.parentPath.replaceWith(t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, moduleDotExport.parentPath.node.right)]));
+              else if (isRequireAssign(moduleDotExport)) {
+                if (!exportsReturn) {
+                  // as a sneaky optimization we use a non-capturing default export in the identifier case
+                  const expression = moduleDotExport.parentPath.node.right;
+                  if (t.isIdentifier(expression))
+                    moduleDotExport.parentPath.parentPath.replaceWith(t.exportNamedDeclaration(null, [t.exportSpecifier(expression, defaultIdentifier)]));
+                  else
+                    moduleDotExport.parentPath.parentPath.replaceWith(t.exportDefaultDeclaration(expression));
+                }
+                else {
+                  if (needsExports)
+                    moduleDotExport.parentPath.parentPath.replaceWith(t.assignmentExpression('=', exportsIdentifier, moduleDotExport.parentPath.node.right));
+                  else
+                    moduleDotExport.parentPath.parentPath.replaceWith(t.variableDeclaration('var', [t.variableDeclarator(exportsIdentifier, moduleDotExport.parentPath.node.right)]));
+                }
               }
               else {
-                needsExports = true;
-                returnExports = true;
                 moduleDotExport.replaceWith(exportsIdentifier);
                 dce(moduleDotExport);
               }
-            });
+            }
           }
 
           /*
@@ -666,9 +695,9 @@ module.exports = function ({ types: t }) {
                 path.remove();
             }
 
-            if (!state.opts.namedExports || !state.opts.namedExports.includes('default'))
+            if ((!state.opts.namedExports || !state.opts.namedExports.includes('default')) && exportsReturn)
               pushBody(path,
-                t.exportDefaultDeclaration(state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : returnExports ? exportsIdentifier : t.objectExpression([]))
+                t.exportDefaultDeclaration(exportsReturn)
               );
 
             if (state.opts.namedExports && state.opts.namedExports.length) {
@@ -678,8 +707,8 @@ module.exports = function ({ types: t }) {
               for (const name of state.opts.namedExports) {
                 const id = t.identifier(name);
                 if (name === 'default') {
-                  const exports = state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier;
-                  pushBody(path, t.exportDefaultDeclaration(exports));
+                  if (exportsReturn)
+                    pushBody(path, t.exportDefaultDeclaration(exportsReturn));
                 }
                 else if (!path.scope.hasBinding(name) && !strictReservedOrKeyword[name] && !transformIds[name]) {
                   exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(exportsIdentifier, id)));
@@ -717,14 +746,8 @@ module.exports = function ({ types: t }) {
             t.variableDeclarator(execIdentifier, t.booleanLiteral(false))
           ]));
 
-          let exportsReturn;
-          if (state.usesModule) {
+          if (state.usesModule)
             dewBodyWrapper.push(moduleDeclarator);
-            exportsReturn = t.returnStatement(t.memberExpression(moduleIdentifier, exportsIdentifier));
-          }
-          else {
-            exportsReturn = t.returnStatement(exportsIdentifier);
-          }
 
           if (state.usesGlobal)
             dewBodyWrapper.push(
@@ -735,10 +758,10 @@ module.exports = function ({ types: t }) {
           dewBodyWrapper.push(
             t.exportNamedDeclaration(
               t.functionDeclaration(dewIdentifier, [], t.blockStatement([
-                t.ifStatement(execIdentifier, exportsReturn),
+                t.ifStatement(execIdentifier, t.returnStatement(exportsReturn)),
                 t.expressionStatement(t.assignmentExpression('=', execIdentifier, t.booleanLiteral(true))),
                 ...path.node.body,
-                exportsReturn
+                t.returnStatement(exportsReturn)
               ])),
               []
             )
