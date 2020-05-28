@@ -1192,6 +1192,10 @@ module.exports = function ({ types: t }) {
         else if (identifierName === 'exports' && !path.scope.hasBinding('exports')) {
           state.usesExports = true;
         }
+        else if (identifierName === 'setImmediate' && !path.scope.hasBinding('setImmediate')) {
+          state.hasProcess = true;
+          path.replaceWith(t.memberExpression(t.identifier('process'), t.identifier('nextTick')));
+        }
       },
 
       /*
