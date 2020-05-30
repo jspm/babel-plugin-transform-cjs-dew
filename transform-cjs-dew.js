@@ -454,6 +454,7 @@ module.exports = function ({ types: t }) {
 
           let exportsReturn = state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier;
           let needsExports = true;
+          let namedExportsId = state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier;
 
           /*
            * Replace module.exports with exports if module not used
@@ -492,12 +493,21 @@ module.exports = function ({ types: t }) {
               }
               else if (isRequireAssign(moduleDotExport)) {
                 if (!exportsReturn) {
-                  // as a sneaky optimization we use a non-capturing default export in the identifier case
+                  // as a sneaky optimization we use a non-capturing default export in the identifier import case
                   const expression = moduleDotExport.parentPath.node.right;
-                  if (t.isIdentifier(expression))
+                  if (t.isIdentifier(expression) && state.deps.some(dep => expression === dep.id)) {
                     moduleDotExport.parentPath.parentPath.replaceWith(t.exportNamedDeclaration(null, [t.exportSpecifier(expression, defaultIdentifier)]));
-                  else
+                    // named exports now link to this id
+                    namedExportsId = expression;
+                  }
+                  else if (!state.opts.namedExports) {
                     moduleDotExport.parentPath.parentPath.replaceWith(t.exportDefaultDeclaration(expression));
+                  }
+                  else {
+                    // revert to exports for named exports from a module.exports expression
+                    exportsReturn = state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier;
+                    needsExports = true;
+                  }
                 }
                 else {
                   if (needsExports)
@@ -711,11 +721,11 @@ module.exports = function ({ types: t }) {
                     pushBody(path, t.exportDefaultDeclaration(exportsReturn));
                 }
                 else if (!path.scope.hasBinding(name) && !strictReservedOrKeyword[name] && !transformIds[name]) {
-                  exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(exportsIdentifier, id)));
+                  exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(namedExportsId, id)));
                 }
                 else {
                   const uid = path.scope.generateUidIdentifier(name);
-                  varDeclarations.push(t.variableDeclarator(uid, t.memberExpression(exportsIdentifier, id)));
+                  varDeclarations.push(t.variableDeclarator(uid, t.memberExpression(namedExportsId, id)));
                   namedExports.push(t.exportSpecifier(uid, id));
                 }
               }
