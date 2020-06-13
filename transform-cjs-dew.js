@@ -526,11 +526,11 @@ module.exports = function ({ types: t }) {
           /*
            * Add process and Buffer imports
            */
-          if (state.hasProcess) {
+          if (state.processId) {
             let dep = addDependency(path, state, t.stringLiteral('process'));
             if (dep) {
               path.unshiftContainer('body', t.variableDeclaration('var', [
-                t.variableDeclarator(t.identifier('process'), dep)
+                t.variableDeclarator(state.processId, dep)
               ]));
             }
           }
@@ -1126,8 +1126,8 @@ module.exports = function ({ types: t }) {
         else if (!state.opts.browserOnly && identifierName === '__non_webpack_require__') {
           path.replaceWith(getNodeRequireBinding(path, state));
         }
-        else if (!state.hasProcess && identifierName === 'process' && !path.scope.hasBinding('process')) {
-          state.hasProcess = true;
+        else if (!state.processId && identifierName === 'process' && !path.scope.hasBinding('process')) {
+          state.processId = t.identifier('process');
         }
         else if (!state.hasBuffer && identifierName === 'Buffer' && !path.scope.hasBinding('Buffer')) {
           state.hasBuffer = true;
@@ -1203,8 +1203,8 @@ module.exports = function ({ types: t }) {
           state.usesExports = true;
         }
         else if (identifierName === 'setImmediate' && !path.scope.hasBinding('setImmediate')) {
-          state.hasProcess = true;
-          path.replaceWith(t.memberExpression(t.identifier('process'), t.identifier('nextTick')));
+          state.processId = path.scope.hasBinding('process') ? path.scope.generateUidIdentifier('process') : t.identifier('process');
+          path.replaceWith(t.memberExpression(state.processId, t.identifier('nextTick')));
         }
       },
 
