@@ -1050,6 +1050,12 @@ module.exports = function ({ types: t }) {
           return;
         }
 
+        if (strictReservedOrKeyword[identifierName] && identifierName !== 'null' && !path.scope.hasBinding(identifierName)) {
+          state.usesGlobal = true;
+          path.replaceWith(t.memberExpression(state.globalIdentifier, path.node));
+          return;
+        }
+
         // either a member "x" about to be referenced more deeply
         // ot a direct identifier "y"
         if (state.define.hasOwnProperty(identifierName)) {
