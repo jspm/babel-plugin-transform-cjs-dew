@@ -1,13 +1,11 @@
-var global;
-
 var _global = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : global;
 
 var exports = {};
-var self = 10;
-_global.global = global = 5;
+var _self = 10;
+_global.global = 5;
 
 function p() {
-  return global;
+  return _global;
 }
 
 exports = p();

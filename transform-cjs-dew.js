@@ -21,6 +21,11 @@ const strictReservedOrKeyword = Object.assign(
   "class":1, "extends":1, "export":1, "import":1, "super":1,
 });
 
+const topLevelReserved = Object.assign(
+  Object.create(null), {
+  "global":1, "self":1, "globalThis":1
+});
+
 const transformIds = Object.assign(
   Object.create(null), {
     // transform-specific!
@@ -386,7 +391,6 @@ module.exports = function ({ types: t }) {
 
           state.deps = [];
           state.functionDepth = 0;
-          state.strictGlobalTypeofPaths = {};
           state.globalIdentifier = path.scope.generateUidIdentifier('global');
           state.usesGlobal = false;
           state.usesModule = false;
@@ -682,12 +686,11 @@ module.exports = function ({ types: t }) {
               unshiftBody(path, t.variableDeclaration('var', [
                 t.variableDeclarator(exportsIdentifier, t.objectExpression([]))
               ]));
-            if (state.usesGlobal) {
+            if (state.usesGlobal)
               unshiftBody(path, 
                 t.variableDeclaration('var', [t.variableDeclarator(state.globalIdentifier,
                   t.conditionalExpression(globalThisPredicate, globalThis, t.conditionalExpression(ifSelfPredicate, selfIdentifier, t.identifier('global')))
                 )]));
-            }
             for (let i = state.deps.length - 1; i >= 0; i--) {
               const dep = state.deps[i];
               unshiftBody(path, 
@@ -1021,7 +1024,7 @@ module.exports = function ({ types: t }) {
         }
         // reserved identifiers
         let identifierName = path.node.name;
-        if (strictReservedOrKeyword[identifierName]) {
+        if (strictReservedOrKeyword[identifierName] || state.functionDepth === 0 && topLevelReserved[identifierName]) {
           path.scope.rename(identifierName);
           return;
         }
@@ -1277,19 +1280,7 @@ module.exports = function ({ types: t }) {
            */
           if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1) {
             state.usesGlobal = true;
-            // the (heuristic) assumption here is that blind non-strict global assignments have only
-            // the usage of typeof x before that global assignment is made, eg a good case:
-            //   `typeof x === 'undefined' && x = 5` -> `typeof _global.x === 'undefined' && x = _global.x = 5`
-            // while we have for example a bad case:
-            //   `x && x = 10 && typeof x === 'undefined'` -> `x && x = _global.x = 10 && typeof x === 'undefined'`
-            let strictGlobalTypeofPaths = state.strictGlobalTypeofPaths[identifierName];
-            if (strictGlobalTypeofPaths)
-              strictGlobalTypeofPaths.forEach(path => {
-                if (t.isIdentifier(path.node))
-                  path.replaceWith(t.memberExpression(state.globalIdentifier, path.node));
-              });
-            path.scope.getProgramParent().push({ id: path.node.left });
-            path.replaceWith(t.assignmentExpression('=', t.memberExpression(state.globalIdentifier, path.node.left), path.node));
+            path.replaceWith(t.assignmentExpression('=', t.memberExpression(state.globalIdentifier, path.node.left), path.node.right));
           }
         }
       },
@@ -1311,11 +1302,6 @@ module.exports = function ({ types: t }) {
             else if (identifierName === 'exports' && !path.scope.hasBinding(identifierName)) {
               path.replaceWith(t.stringLiteral('object'));
               dce(path);
-            }
-            else if (!state.isStrict && !path.scope.hasBinding(identifierName)) {
-              // note all typeof x to do conversion into typeof _global.x if a strict assignment later
-              (state.strictGlobalTypeofPaths[identifierName] = state.strictGlobalTypeofPaths[identifierName] || [])
-              .push(path.get('argument'));
             }
           }
         }
