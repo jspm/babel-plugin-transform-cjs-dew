@@ -12,7 +12,20 @@ export function dew() {
     console.log(_global.interface);
   }
 
-  _global.static(x);
+  _global.static(x); // reserved but SHOULDNT change
+
+
+  console.log(null);
+  eval("");
+  debugger;
+  void 0;
+
+  class A extends B {
+    constructor() {
+      console.log(super());
+    }
+
+  }
 
   return exports;
 }
