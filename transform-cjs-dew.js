@@ -1086,7 +1086,7 @@ module.exports = function ({ types: t }) {
           if (!binding)
             return false;
           return t.isFunction(binding.path.parent) && binding.path.parent.params[0] === binding.path.node &&
-            t.isCallExpression(binding.path.parentPath.parentPath);
+            t.isCallExpression(binding.path.parentPath.parentPath) && binding.path.parentPath.parentPath.node.arguments[0] === binding.path.parent;
         }
         if (identifierName === 'require' && (!path.scope.hasBinding('require') || isRequireFunctionWrapper(path.scope.getBinding('require')))) {
           let parentPath = path.parentPath;
