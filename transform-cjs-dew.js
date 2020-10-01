@@ -400,6 +400,7 @@ module.exports = function ({ types: t }) {
           state.inserting = false;
           state.nodeRequireBinding = undefined;
           state.requireResolve = false;
+          state.globalRefs = new Set();
 
           if (path.node.body.length !== 1 ||
               !t.isExpressionStatement(path.node.body[0]) ||
@@ -723,7 +724,7 @@ module.exports = function ({ types: t }) {
                   if (exportsReturn)
                     pushBody(path, t.exportDefaultDeclaration(exportsReturn));
                 }
-                else if (!path.scope.hasBinding(name) && !strictReservedOrKeyword[name] && !transformIds[name]) {
+                else if (!path.scope.hasBinding(name) && !strictReservedOrKeyword[name] && !transformIds[name] && !state.globalRefs.has(name)) {
                   exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(namedExportsId, id)));
                 }
                 else {
@@ -1050,10 +1051,13 @@ module.exports = function ({ types: t }) {
           return;
         }
 
-        if (strictReservedOrKeyword[identifierName] && identifierName !== 'null' && !path.scope.hasBinding(identifierName)) {
-          state.usesGlobal = true;
-          path.replaceWith(t.memberExpression(state.globalIdentifier, path.node));
-          return;
+        if (!path.scope.hasBinding(identifierName)) {
+          state.globalRefs.add(path.node.name);
+          if (strictReservedOrKeyword[identifierName] && identifierName !== 'null') {
+            state.usesGlobal = true;
+            path.replaceWith(t.memberExpression(state.globalIdentifier, path.node));
+            return;
+          }
         }
 
         // either a member "x" about to be referenced more deeply
