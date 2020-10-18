@@ -391,6 +391,7 @@ module.exports = function ({ types: t }) {
 
           state.deps = [];
           state.functionDepth = 0;
+          state.classDepth = 0;
           state.globalIdentifier = path.scope.generateUidIdentifier('global');
           state.usesGlobal = false;
           state.usesModule = false;
@@ -456,6 +457,7 @@ module.exports = function ({ types: t }) {
         },
         exit (path, state) {
           state.functionDepth = -1;
+          state.classDepth = -1;
 
           let exportsReturn = state.usesModule ? t.memberExpression(moduleIdentifier, exportsIdentifier) : exportsIdentifier;
           let needsExports = true;
@@ -893,6 +895,15 @@ module.exports = function ({ types: t }) {
         }
       },
 
+      Class: {
+        enter (path, state) {
+          state.classDepth++;
+        },
+        exit (path, state) {
+          state.classDepth--;
+        }
+      },
+
       // labelled function declarations not ES6
       LabeledStatement (path) {
         if (t.isFunctionDeclaration(path.node.body))
@@ -975,6 +986,7 @@ module.exports = function ({ types: t }) {
       VariableDeclarator (path, state) {
         if (state.inserting)
           return;
+
         const binding = path.scope.getBinding(path.node.id.name);
         if (!binding)
           return;
@@ -1044,7 +1056,7 @@ module.exports = function ({ types: t }) {
           return;
         let identifierName = path.node.name;
 
-        if (state.argsId && identifierName === 'arguments' && path.scope.getBinding(identifierName) === undefined && state.functionDepth > 0) {
+        if (state.argsId && identifierName === 'arguments' && state.functionDepth > 0 && path.scope.getBinding(identifierName) === undefined) {
           const fnPath = getFunctionScope(path);
           if (fnPath.node === state.argsFn)
             path.replaceWith(state.argsId);
@@ -1250,7 +1262,7 @@ module.exports = function ({ types: t }) {
           state.usesExports = true;
           path.replaceWith(exportsIdentifier);
         }
-        else if (!state.isStrict) {
+        else if (!state.isStrict && state.classDepth === 0) {
           state.usesGlobal = true;
           const parentPath = path.parentPath;
           const directCall = t.isMemberExpression(parentPath.node) && parentPath.node.object === path.node
