@@ -714,10 +714,11 @@ module.exports = function ({ types: t }) {
                 unshiftBody(path, 
                   t.variableDeclaration('var', [t.variableDeclarator(
                     dep.id,
-                    t.conditionalExpression(t.logicalExpression('&&',
+                    t.conditionalExpression(
                       t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
-                      t.binaryExpression('===', t.memberExpression(t.callExpression(t.memberExpression(t.identifier('Object'), t.identifier('keys')), [dep.mid]), t.identifier('length')), t.numericLiteral(1))
-                    ), t.memberExpression(dep.mid, defaultIdentifier), dep.mid)
+                      t.memberExpression(dep.mid, defaultIdentifier),
+                      dep.mid
+                    )
                   )])
                 );
               unshiftBody(path, 
@@ -781,10 +782,11 @@ module.exports = function ({ types: t }) {
               dewBodyWrapper.push(
                 t.variableDeclaration('var', [t.variableDeclarator(
                   dep.id,
-                  t.conditionalExpression(t.logicalExpression('&&',
+                  t.conditionalExpression(
                     t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
-                    t.binaryExpression('===', t.memberExpression(t.callExpression(t.memberExpression(t.identifier('Object'), t.identifier('keys')), [dep.mid]), t.identifier('length')), t.numericLiteral(1))
-                  ), t.memberExpression(dep.mid, defaultIdentifier), dep.mid)
+                    t.memberExpression(dep.mid, defaultIdentifier),
+                    dep.mid
+                  )
                 )])
               );
           });
