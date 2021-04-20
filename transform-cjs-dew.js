@@ -205,19 +205,24 @@ module.exports = function ({ types: t }) {
     if (esmDependency === 'interop')
       dew = true, ns = true;
     else if (esmDependency === 'namespace')
-      ns = true, dew =false;
+      ns = true, dew = false;
+    else if (esmDependency === 'namespace-interop')
+      ns = true, dew = false;
     else if (esmDependency)
       dew = false;
     const uidName = basename(depResolved);
     const uidExt = extname(uidName);
-    const depName = path.scope.getProgramParent().generateUidIdentifier(uidName.substr(0, uidName.length - uidExt.length)).name;
+    const name = uidName.substr(0, uidName.length - uidExt.length);
+    const depName = path.scope.getProgramParent().generateUid(name);
+    const moduleName = esmDependency === 'namespace-interop' ? path.scope.getProgramParent().generateUid(name) : depName;
     const dep = {
       literal: t.stringLiteral(depResolved),
       id: t.identifier(depName + (dew && !ns ? 'Dew' : '')),
+      mid: t.identifier(moduleName + (dew && !ns ? 'Dew' : '')),
       dew,
       ns
     };
-    state.deps.push(dep)
+    state.deps.push(dep);
     return requireSub(dep, state);
   }
 
@@ -705,9 +710,19 @@ module.exports = function ({ types: t }) {
                 )]));
             for (let i = state.deps.length - 1; i >= 0; i--) {
               const dep = state.deps[i];
+              if (dep.ns && dep.mid.name !== dep.id.name)
+                unshiftBody(path, 
+                  t.variableDeclaration('var', [t.variableDeclarator(
+                    dep.id,
+                    t.conditionalExpression(t.logicalExpression('&&',
+                      t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
+                      t.binaryExpression('===', t.memberExpression(t.callExpression(t.memberExpression(t.identifier('Object'), t.identifier('keys')), [dep.mid]), t.identifier('length')), t.numericLiteral(1))
+                    ), t.memberExpression(dep.mid, defaultIdentifier), dep.mid)
+                  )])
+                );
               unshiftBody(path, 
                 t.importDeclaration([
-                  dep.dew && !dep.ns ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
+                  dep.dew && !dep.ns ? t.importSpecifier(dep.mid, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.mid)
                 ], dep.literal)
               );
             }
@@ -759,9 +774,19 @@ module.exports = function ({ types: t }) {
           state.deps.forEach(dep => {
             dewBodyWrapper.push(
               t.importDeclaration([
-                dep.dew && !dep.ns ? t.importSpecifier(dep.id, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.id)
+                dep.dew && !dep.ns ? t.importSpecifier(dep.mid, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.mid)
               ], dep.literal)
             );
+            if (dep.ns && dep.mid.name !== dep.id.name)
+              dewBodyWrapper.push(
+                t.variableDeclaration('var', [t.variableDeclarator(
+                  dep.id,
+                  t.conditionalExpression(t.logicalExpression('&&',
+                    t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
+                    t.binaryExpression('===', t.memberExpression(t.callExpression(t.memberExpression(t.identifier('Object'), t.identifier('keys')), [dep.mid]), t.identifier('length')), t.numericLiteral(1))
+                  ), t.memberExpression(dep.mid, defaultIdentifier), dep.mid)
+                )])
+              );
           });
 
           const execIdentifier = path.scope.generateUidIdentifier('dewExec');
