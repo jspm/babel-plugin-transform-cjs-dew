@@ -230,9 +230,9 @@ export function dew() {
        */
 
 
-      function join()
-      /* ...promises */
-      {
+      function
+        /* ...promises */
+      join() {
         return Promise.all(arguments);
       }
       /**

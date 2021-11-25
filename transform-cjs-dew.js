@@ -336,6 +336,34 @@ module.exports = function ({ types: t }) {
       }
     }
   }
+  function getIfTypeOfCheck (node, identifierName, typeString) {
+    if (!t.isBinaryExpression(node))
+      return null;
+    let truthy = false;
+    if (node.operator === '==' || node.operator === '===') {
+      truthy = true;
+    }
+    else if (node.operator !== '!=' && node.operator !== '!==') {
+      return null;
+    }
+    if (t.isUnaryExpression(node.left, { operator: 'typeof' }) && t.isIdentifier(node.left.argument, { name: identifierName })) {
+      if (!t.isStringLiteral(node.right))
+        return null;
+      if (node.right.value === 'undefined')
+        truthy = !truthy;
+      else if (node.right.value !== typeString)
+        return null;
+    }
+    else if (t.isUnaryExpression(node.right, { operator: 'typeof' }) && t.isIdentifier(node.right.argument, { name: identifierName })) {
+      if (!t.isStringLiteral(node.left))
+        return null;
+      if (node.left.value === 'undefined')
+        truthy = !truthy;
+      else if (node.left.value !== typeString)
+        return null;
+    }
+    return truthy;
+  }
 
   let thisOrGlobal;
   let filenameReplace;
@@ -345,6 +373,7 @@ module.exports = function ({ types: t }) {
     visitor: {
       Program: {
         enter (path, state) {
+          state.processGuard = 0;
           state.source = path.getSource();
 
           if (path.hub.file.shebang)
@@ -1082,6 +1111,50 @@ module.exports = function ({ types: t }) {
           state.usesExports = true;
       },
 
+      // Check process guards
+      // TODO: check IfStatment and ConditionalStatement forms
+      // although this is the most common
+      LogicalExpression: {
+        enter (path, state) {
+          if (state.hasProcess || state.processGuard)
+            return;
+          let truthy = false;
+          if (path.node.operator === '&&')
+            truthy = true;
+          else if (path.node.operator !== '||' && path.node.operator !== '??')
+            return;
+          let processCheck = getIfTypeOfCheck(path.node.left, 'process', 'object');
+          if (processCheck === null)
+            return;
+          if (processCheck === false)
+            truthy = !truthy;
+          if (!truthy)
+            return;
+          if (path.scope.hasBinding('process'))
+            return;
+          state.processGuard = true;
+        },
+        exit (path, state) {
+          if (state.hasProcess || !state.processGuard)
+            return;
+          let truthy = false;
+          if (path.node.operator === '&&')
+            truthy = true;
+          else if (path.node.operator !== '||' && path.node.operator !== '??')
+            return;
+          let processCheck = getIfTypeOfCheck(path.node.left, 'process', 'object');
+          if (processCheck === null)
+            return;
+          if (processCheck === false)
+            truthy = !truthy;
+          if (path.scope.hasBinding('process'))
+            return;
+          if (truthy) {
+            state.processGuard = false;
+          }
+        }
+      },
+
       /*
        * process / Buffer become imports
        * global renames to global alias
@@ -1188,10 +1261,10 @@ module.exports = function ({ types: t }) {
         else if (!state.opts.browserOnly && identifierName === '__non_webpack_require__') {
           path.replaceWith(getNodeRequireBinding(path, state));
         }
-        else if (!state.hasProcess && identifierName === 'process' && !path.scope.hasBinding('process')) {
+        else if (!state.hasProcess && !state.processGuard && identifierName === 'process' && !path.scope.hasBinding('process')) {
           state.hasProcess = true;
         }
-        else if (!state.hasBuffer && identifierName === 'Buffer' && !path.scope.hasBinding('Buffer')) {
+        else if (!state.hasBuffer && !state.bufferGuard && identifierName === 'Buffer' && !path.scope.hasBinding('Buffer')) {
           state.hasBuffer = true;
         }
         else if (identifierName === 'module' && !path.scope.hasBinding('module')) {
