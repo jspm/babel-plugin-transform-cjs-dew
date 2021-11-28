@@ -1056,7 +1056,7 @@ module.exports = function ({ types: t }) {
         if (!binding)
           return;
 
-        if (binding.constantViolations.some(path => t.isFunction(path.node) && path.node.id.name === binding.identifier.name)) {
+        if (binding.constantViolations.some(path => t.isFunction(path.node) && path.node.id && path.node.id.name === binding.identifier.name)) {
           const newBinding = binding.constantViolations.find(path => t.isFunction(path.node));
           if (t.isIdentifier(path.node.id)) {
             if (t.isForOfStatement(path.parentPath.parentPath) ||
