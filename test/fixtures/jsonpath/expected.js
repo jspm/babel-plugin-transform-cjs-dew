@@ -1,16 +1,12 @@
 import { dew as _moduleDew } from "module";
 var exports = {},
-    _dewExec = false;
-
+  _dewExec = false;
 var _global = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : global;
-
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-
   var _nodeRequire = function () {
     var Module = _moduleDew().Module;
-
     if (Module) {
       var m = new Module("");
       m.filename = import.meta.url.substr(7 + (Module._nodeModulePaths("/")[0].length > 13));
@@ -28,8 +24,8 @@ export function dew() {
       };
     }
   }();
-
   /*! jsonpath 1.0.2 */
+
   (function (f) {
     exports = f();
   })(function () {
@@ -44,7 +40,6 @@ export function dew() {
             var f = new Error("Cannot find module '" + o + "'");
             throw f.code = "MODULE_NOT_FOUND", f;
           }
-
           var l = n[o] = {
             exports: {}
           };
@@ -53,23 +48,20 @@ export function dew() {
             return s(n ? n : e);
           }, l, l.exports, e, t, n, r);
         }
-
         return n[o].exports;
       }
-
       var i = _nodeRequire;
-
       for (var o = 0; o < r.length; o++) s(r[o]);
-
       return s;
     }({
       "./aesprim": [function (require, module, exports) {
         (function (root, factory) {
-          'use strict'; // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js,
+          'use strict';
+
+          // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js,
           // Rhino, and plain browser loading.
 
           /* istanbul ignore next */
-
           if (typeof define === "function" && define.amd) {
             define(["exports"], factory);
           } else if (typeof exports !== "undefined") {
@@ -81,29 +73,23 @@ export function dew() {
           'use strict';
         });
         /* vim: set sw=4 ts=4 et tw=80 : */
-
       }, {}],
       1: [function (require, module, exports) {
         (function (process) {
           if (typeof require !== "undefined" && typeof exports !== "undefined") {
             exports.parser = parser;
             exports.Parser = parser.Parser;
-
             exports.parse = function () {
               return parser.parse.apply(parser, arguments);
             };
-
             exports.main = function commonjsMain(args) {
               if (!args[1]) {
                 console.log("Usage: " + args[0] + " FILE");
                 process.exit(1);
               }
-
               var source = require("fs").readFileSync(require("path").normalize(args[1]), "utf8");
-
               return exports.parser.parse(source);
             };
-
             if (typeof module !== "undefined" && require.main === module) {
               exports.main(process.argv.slice(1));
             }
@@ -124,14 +110,11 @@ export function dew() {
       }, {}],
       3: [function (require, module, exports) {
         var dict = require("./dict");
-
         var fs = require("fs");
-
         if (fs.readFileSync) {
           grammar.moduleInclude = fs.readFileSync(require.resolve("../include/module.js"));
           grammar.actionInclude = fs.readFileSync(require.resolve("../include/action.js"));
         }
-
         module.exports = grammar;
       }, {
         "./dict": 2,
@@ -139,13 +122,9 @@ export function dew() {
       }],
       4: [function (require, module, exports) {
         var aesprim = require("./aesprim");
-
         var slice = require("./slice");
-
         var _evaluate = require("static-eval");
-
         var _uniq = require("underscore").uniq;
-
         module.exports = Handlers;
       }, {
         "..": "jsonpath",
@@ -157,13 +136,9 @@ export function dew() {
       }],
       5: [function (require, module, exports) {
         var assert = require("assert");
-
         var dict = require("./dict");
-
         var Parser = require("./parser");
-
         var Handlers = require("./handlers");
-
         Parser.grammar = grammar;
         module.exports = Parser;
       }, {
@@ -177,6 +152,5 @@ export function dew() {
       }]
     }, {}, ["jsonpath"])("jsonpath");
   });
-
   return exports;
 }

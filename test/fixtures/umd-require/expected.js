@@ -1,6 +1,5 @@
 import { dew as _quickStartDew } from "./quick-start";
 var exports = {};
-
 (function (factory) {
   {
     var v = factory(null, exports);
@@ -12,10 +11,7 @@ var exports = {};
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
-
   var quick_start_1 = _quickStartDew();
-
   exports.asdf = quick_start_1;
 });
-
 export default exports;

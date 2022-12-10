@@ -6,6 +6,5 @@ Object.defineProperty(module, "exports", {
   get() {
     return "yo";
   }
-
 });
 export default module.exports;

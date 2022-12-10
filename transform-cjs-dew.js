@@ -126,6 +126,8 @@ module.exports = function ({ types: t }) {
   }
 
   function addDependency (path, state, depModuleArg, optional = false) {
+    if (path.parentPath && path.parentPath.data === 'dead')
+      return null;
     const exprs = [];
     let depModule = resolvePartialWildcardString(depModuleArg, false, exprs);
 
@@ -295,25 +297,30 @@ module.exports = function ({ types: t }) {
       if (knownPredicate) {
         let consequent = path.parentPath.get('consequent');
         let alternate = path.parentPath.get('alternate');
-  
+
         path.stop();
   
         if (truthy) {
           if (alternate.node)
             alternate.remove();
-          if (t.isBlockStatement(consequent.node) && consequent.node.body.length === 1 && t.isExpressionStatement(consequent.node.body[0]))
+          if (t.isBlockStatement(consequent.node) && consequent.node.body.length === 1 && t.isExpressionStatement(consequent.node.body[0])) {
             path.parentPath.replaceWith(consequent.node.body[0]);
-          else
+          }
+          else {
             path.parentPath.replaceWith(consequent);
+          }
         }
         else {
           consequent.remove();
-          if (t.isBlockStatement(alternate.node) && alternate.node.body.length === 1 && t.isExpressionStatement(alternate.node.body[0]))
+          if (t.isBlockStatement(alternate.node) && alternate.node.body.length === 1 && t.isExpressionStatement(alternate.node.body[0])) {
             path.parentPath.replaceWith(alternate.node.body[0]);
-          else if (alternate.node)
+          }
+          else if (alternate.node) {
             path.parentPath.replaceWith(alternate);
-          else
+          }
+          else {
             path.parentPath.remove();
+          }
         }  
       }
     }
@@ -324,10 +331,14 @@ module.exports = function ({ types: t }) {
 
       path.stop();
 
-      if (parentNode.test.value)
+      if (parentNode.test.value) {
+        alternate.data = 'dead';
         path.parentPath.replaceWith(consequent);
-      else
+      }
+      else {
+        consequent.data = 'dead';
         path.parentPath.replaceWith(alternate);
+      }
     }
     else if (t.isUnaryExpression(parentNode) && parentNode.operator === 'typeof') {
       if (t.isIdentifier(path.node, { name: 'undefined' })) {
@@ -368,11 +379,13 @@ module.exports = function ({ types: t }) {
   let thisOrGlobal;
   let filenameReplace;
   let dirnameReplace;
+  let moduleNode;
 
   return {
     visitor: {
       Program: {
         enter (path, state) {
+          moduleNode = path.node;
           state.processGuard = 0;
           state.source = path.getSource();
 

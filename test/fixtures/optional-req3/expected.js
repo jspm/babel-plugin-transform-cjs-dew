@@ -1,12 +1,10 @@
 var exports = {},
-    _dewExec = false;
+  _dewExec = false;
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-
   var _nodeRequire = function () {
     var Module = _nodeRequire("module").Module;
-
     if (Module) {
       var m = new Module("");
       m.filename = import.meta.url.substr(7 + (Module._nodeModulePaths("/")[0].length > 13));
@@ -20,13 +18,10 @@ export function dew() {
       };
     }
   }();
-
   let convert;
-
   try {
     convert = _nodeRequire("encoding").convert;
   } catch (e) {}
-
   if (x) console.log("Have optional");else console.log("No optional");
   return exports;
 }

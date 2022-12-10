@@ -6,5 +6,4 @@
     return 5;
   }
 })();
-
 export default {};

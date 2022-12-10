@@ -1,7 +1,7 @@
 var exports = {};
 //! moment.js
-;
 
+;
 (function (global, factory) {
   exports = factory();
 })(exports, function () {
@@ -12,5 +12,4 @@ var exports = {};
     a: "a"
   };
 });
-
 export default exports;

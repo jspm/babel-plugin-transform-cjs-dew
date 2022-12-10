@@ -78,15 +78,12 @@ var s = process.env.NODE_ENV === 'dev' ? require('p') : require('q');
     assert.equal(transform(source, options).code, `import { dew as _xDew } from "x";
 import { dew as _qDew } from "q";
 var exports = {},
-    _dewExec = false;
+  _dewExec = false;
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-
   _xDew();
-
   var s = _qDew();
-
   return exports;
 }`);
 

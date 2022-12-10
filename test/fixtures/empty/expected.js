@@ -1,14 +1,12 @@
 import { dew as _anotherDew } from "another";
 import { dew as _moduleDew } from "module";
 var exports = {},
-    _dewExec = false;
+  _dewExec = false;
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-
   var _nodeRequire = function () {
     var Module = _moduleDew().Module;
-
     if (Module) {
       var m = new Module("");
       m.filename = import.meta.url.substr(7 + (Module._nodeModulePaths("/")[0].length > 13));
@@ -22,14 +20,10 @@ export function dew() {
       };
     }
   }();
-
   var thing = _nodeRequire("thing");
-
   var another = _anotherDew();
-
   exports.y = function p() {
     return _nodeRequire("thing");
   };
-
   return exports;
 }

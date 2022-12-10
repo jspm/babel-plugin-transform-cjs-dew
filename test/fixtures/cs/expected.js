@@ -1,3 +1,2 @@
 function x() {}
-
 export default {};

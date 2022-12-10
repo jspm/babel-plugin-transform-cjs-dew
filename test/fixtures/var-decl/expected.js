@@ -1,45 +1,37 @@
 // General rule:
 // - last function declaration is implicit assignment
 // - var statements after first are assignments
+
+(function () {
+  function x() {}
+  // function
+  console.log(x);
+})();
+(function () {
+  function x() {}
+  x = 10;
+  x = 11; // 11
+  console.log(x);
+})();
 (function () {
   function x() {}
 
   // function
   console.log(x);
 })();
-
-(function () {
-  function x() {}
-
-  x = 10;
-  x = 11; // 11
-
-  console.log(x);
-})();
-
-(function () {
-  function x() {} // function
-
-
-  console.log(x);
-})();
-
 (function () {
   function x() {
     return "b";
-  } // b
+  }
 
-
+  // b
   console.log(x());
 })();
-
 (function () {
   x = 5;
+  function x() {}
 
-  function x() {} // 5
-
-
+  // 5
   console.log(x);
 })();
-
 export default {};

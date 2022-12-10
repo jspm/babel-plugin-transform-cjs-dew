@@ -1,5 +1,4 @@
 var define;
-
 if (define) {
   if (typeof define === "function" && define.amd) {
     define([], function () {
@@ -7,5 +6,4 @@ if (define) {
     });
   }
 }
-
 export default {};

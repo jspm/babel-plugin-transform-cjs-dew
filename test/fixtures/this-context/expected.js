@@ -1,5 +1,4 @@
 var _global = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : global;
-
 var exports = {};
 exports.asdf = {
   obj: "x"

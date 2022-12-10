@@ -4,5 +4,5 @@ exports.TextEncoder = typeof TextEncoder !== "undefined" ? TextEncoder : _util.T
 exports.TextDecoder = typeof TextDecoder !== "undefined" ? TextDecoder : _util.TextDecoder;
 export default exports;
 const _TextEncoder = exports.TextEncoder,
-      _TextDecoder = exports.TextDecoder;
+  _TextDecoder = exports.TextDecoder;
 export { _TextEncoder as TextEncoder, _TextDecoder as TextDecoder };

@@ -11,14 +11,11 @@ import { dew as _TimeoutErrorDew } from "./lib/TimeoutError";
 import { dew as _PromiseDew } from "./lib/Promise";
 import { dew as _applyDew } from "./lib/apply";
 var exports = {},
-    _dewExec = false;
-
+  _dewExec = false;
 var _global = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : global;
-
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-
   /** @license MIT License (c) copyright 2010-2014 original author or authors */
 
   /**
@@ -32,76 +29,56 @@ export function dew() {
 
     define(function () {
       var timed = _timedDew();
-
       var array = _arrayDew();
-
       var flow = _flowDew();
-
       var fold = _foldDew();
-
       var inspect = _inspectDew();
-
       var generate = _iterateDew();
-
       var progress = _progressDew();
-
       var withThis = _withDew();
-
       var unhandledRejection = _unhandledRejectionDew();
-
       var TimeoutError = _TimeoutErrorDew();
-
       var Promise = [array, flow, fold, generate, progress, inspect, withThis, timed, unhandledRejection].reduce(function (Promise, feature) {
         return feature(Promise);
       }, _PromiseDew());
+      var apply = _applyDew()(Promise);
 
-      var apply = _applyDew()(Promise); // Public API
-
+      // Public API
 
       when.promise = promise; // Create a pending promise
-
       when.resolve = Promise.resolve; // Create a resolved promise
-
       when.reject = Promise.reject; // Create a rejected promise
 
       when.lift = lift; // lift a function to return promises
-
       when["try"] = attempt; // call a function and return a promise
-
       when.attempt = attempt; // alias for when.try
 
       when.iterate = Promise.iterate; // DEPRECATED (use cujojs/most streams) Generate a stream of promises
-
       when.unfold = Promise.unfold; // DEPRECATED (use cujojs/most streams) Generate a stream of promises
 
       when.join = join; // Join 2 or more promises
 
       when.all = all; // Resolve a list of promises
-
       when.settle = settle; // Settle a list of promises
 
       when.any = lift(Promise.any); // One-winner race
-
       when.some = lift(Promise.some); // Multi-winner race
-
       when.race = lift(Promise.race); // First-to-settle race
 
       when.map = map; // Array.map() for promises
-
       when.filter = filter; // Array.filter() for promises
-
       when.reduce = lift(Promise.reduce); // Array.reduce() for promises
-
       when.reduceRight = lift(Promise.reduceRight); // Array.reduceRight() for promises
 
       when.isPromiseLike = isPromiseLike; // Is something promise-like, aka thenable
 
       when.Promise = Promise; // Promise constructor
-
       when.defer = defer; // Create a {promise, resolve, reject} tuple
+
       // Error types
 
       when.TimeoutError = TimeoutError;
+
       /**
        * Get a trusted promise for x, or by transforming x with onFulfilled
        *
@@ -117,87 +94,71 @@ export function dew() {
        *   value of callback or errback or the completion value of promiseOrValue if
        *   callback and/or errback is not supplied.
        */
-
       function when(x, onFulfilled, onRejected, onProgress) {
         var p = Promise.resolve(x);
-
         if (arguments.length < 2) {
           return p;
         }
-
         return p.then(onFulfilled, onRejected, onProgress);
       }
+
       /**
        * Creates a new promise whose fate is determined by resolver.
        * @param {function} resolver function(resolve, reject, notify)
        * @returns {Promise} promise whose fate is determine by resolver
        */
-
-
       function promise(resolver) {
         return new Promise(resolver);
       }
+
       /**
        * Lift the supplied function, creating a version of f that returns
        * promises, and accepts promises as arguments.
        * @param {function} f
        * @returns {Function} version of f that returns promises
        */
-
-
       function lift(f) {
         return function () {
           for (var i = 0, l = arguments.length, a = new Array(l); i < l; ++i) {
             a[i] = arguments[i];
           }
-
           return apply(f, this || _global, a);
         };
       }
+
       /**
        * Call f in a future turn, with the supplied args, and return a promise
        * for the result.
        * @param {function} f
        * @returns {Promise}
        */
-
-
-      function attempt(f
-      /*, args... */
-      ) {
+      function attempt(f /*, args... */) {
         /*jshint validthis:true */
         for (var i = 0, l = arguments.length - 1, a = new Array(l); i < l; ++i) {
           a[i] = arguments[i + 1];
         }
-
         return apply(f, this || _global, a);
       }
+
       /**
        * Creates a {promise, resolver} pair, either or both of which
        * may be given out safely to consumers.
        * @return {{promise: Promise, resolve: function, reject: function, notify: function}}
        */
-
-
       function defer() {
         return new Deferred();
       }
-
       function Deferred() {
         var p = Promise._defer();
-
         function resolve(x) {
           p._handler.resolve(x);
         }
-
         function reject(x) {
           p._handler.reject(x);
         }
-
         function notify(x) {
           p._handler.notify(x);
         }
-
         (this || _global).promise = p;
         (this || _global).resolve = resolve;
         (this || _global).reject = reject;
@@ -208,6 +169,7 @@ export function dew() {
           notify: notify
         };
       }
+
       /**
        * Determines if x is promise-like, i.e. a thenable object
        * NOTE: Will return true for *any thenable object*, and isn't truly
@@ -216,11 +178,10 @@ export function dew() {
        * @param {*} x anything
        * @returns {boolean} true if x is promise-like
        */
-
-
       function isPromiseLike(x) {
         return x && typeof x.then === "function";
       }
+
       /**
        * Return a promise that will resolve only once all the supplied arguments
        * have resolved. The resolution value of the returned promise will be an array
@@ -228,24 +189,21 @@ export function dew() {
        * @param {...*} arguments may be a mix of promises and values
        * @returns {Promise}
        */
-
-
-      function
-        /* ...promises */
-      join() {
+      function join( /* ...promises */
+      ) {
         return Promise.all(arguments);
       }
+
       /**
        * Return a promise that will fulfill once all input promises have
        * fulfilled, or reject when any one input promise rejects.
        * @param {array|Promise} promises array (or promise for an array) of promises
        * @returns {Promise}
        */
-
-
       function all(promises) {
         return when(promises, Promise.all);
       }
+
       /**
        * Return a promise that will always fulfill with an array containing
        * the outcome states of all input promises.  The returned promise
@@ -253,11 +211,10 @@ export function dew() {
        * @param {array|Promise} promises array (or promise for an array) of promises
        * @returns {Promise} promise for array of settled state descriptors
        */
-
-
       function settle(promises) {
         return when(promises, Promise.settle);
       }
+
       /**
        * Promise-aware array map function, similar to `Array.prototype.map()`,
        * but input array may contain promises or values.
@@ -267,13 +224,12 @@ export function dew() {
        * @returns {Promise} promise that will fulfill with an array of mapped values
        *  or reject if any input promise rejects.
        */
-
-
       function map(promises, mapFunc) {
         return when(promises, function (promises) {
           return Promise.map(promises, mapFunc);
         });
       }
+
       /**
        * Filter the provided array of promises using the provided predicate.  Input may
        * contain promises and values
@@ -283,19 +239,15 @@ export function dew() {
        * @returns {Promise} promise that will fulfill with an array containing all items
        *  for which predicate returned truthy.
        */
-
-
       function filter(promises, predicate) {
         return when(promises, function (promises) {
           return Promise.filter(promises, predicate);
         });
       }
-
       return when;
     });
   })(function (factory) {
     exports = factory();
   });
-
   return exports;
 }

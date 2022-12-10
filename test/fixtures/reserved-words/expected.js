@@ -1,11 +1,10 @@
 var exports = {},
-    _dewExec = false;
+  _dewExec = false;
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
   const _package = "asdf";
   p(_package);
-
   function p(_implements) {
     var _arguments = "asdf";
     var o = {
@@ -19,7 +18,6 @@ export function dew() {
       await: function _await() {}
     };
   }
-
   const _eval = "wat";
   return exports;
 }
