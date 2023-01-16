@@ -1351,6 +1351,13 @@ module.exports = function ({ types: t }) {
           state.usesExports = true;
         }
         else if (identifierName === 'setImmediate' && !path.scope.hasBinding('setImmediate')) {
+          if (t.isUnaryExpression(path.parentPath.node, { operator: 'typeof' }) &&
+              (t.isBinaryExpression(path.parentPath.parentPath.node, { operator: '===' }) || t.isBinaryExpression(path.parentPath.parentPath.node, { operator: '!==' })) &&
+              (t.isConditionalExpression(path.parentPath.parentPath.parentPath.node) && path.parentPath.parentPath.parentPath.node.test === path.parentPath.parentPath.node ||
+              t.isLogicalExpression(path.parentPath.parentPath.parentPath.node) && path.parentPath.parentPath.parentPath.node.left === path.parentPath.parentPath.node)) {
+            path.stop();
+            return;
+          }
           if (path.scope.hasBinding('process')) {
             state.processId = state.processId || path.scope.generateUidIdentifier('process');
             path.replaceWith(t.memberExpression(state.processId, t.identifier('nextTick')));
