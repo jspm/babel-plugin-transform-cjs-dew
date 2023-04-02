@@ -21,6 +21,14 @@ const strictReservedOrKeyword = Object.assign(
   "class":1, "extends":1, "export":1, "import":1, "super":1,
 });
 
+function hasBinding (path, bindingName) {
+  // Babel bug with replacement scoping creating circular scope
+  // work around by calling the id check directly
+  if (path.scope === path.scope.parent)
+   return path.scope.hasOwnBinding(bindingName);
+  return path.scope.hasBinding(bindingName);
+}
+
 const topLevelReserved = Object.assign(
   Object.create(null), {
   "global":1, "self":1, "globalThis":1
@@ -793,7 +801,7 @@ module.exports = function ({ types: t }) {
                   if (exportsReturn)
                     pushBody(path, t.exportDefaultDeclaration(exportsReturn));
                 }
-                else if (!path.scope.hasBinding(name) && !strictReservedOrKeyword[name] && !transformIds[name] && !state.globalRefs.has(name)) {
+                else if (!hasBinding(path, name) && !strictReservedOrKeyword[name] && !transformIds[name] && !state.globalRefs.has(name)) {
                   exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(namedExportsId, id)));
                 }
                 else {
@@ -899,7 +907,7 @@ module.exports = function ({ types: t }) {
       MemberExpression (path, state) {
         if (state.inserting)
           return;
-        if (t.isIdentifier(path.node.object, { name: 'require' }) && !path.scope.hasBinding('require')) {
+        if (t.isIdentifier(path.node.object, { name: 'require' }) && !hasBinding(path, 'require')) {
           let name = path.node.computed ? path.node.property.value : path.node.property.name;
           if (name)
           switch (name) {
@@ -1120,7 +1128,7 @@ module.exports = function ({ types: t }) {
           return;
         }
 
-        if (identifierName === 'exports' && !path.scope.hasBinding(identifierName))
+        if (identifierName === 'exports' && !hasBinding(path, identifierName))
           state.usesExports = true;
       },
 
@@ -1143,7 +1151,7 @@ module.exports = function ({ types: t }) {
             truthy = !truthy;
           if (!truthy)
             return;
-          if (path.scope.hasBinding('process'))
+          if (hasBinding(path, 'process'))
             return;
           state.processGuard = true;
         },
@@ -1160,7 +1168,7 @@ module.exports = function ({ types: t }) {
             return;
           if (processCheck === false)
             truthy = !truthy;
-          if (path.scope.hasBinding('process'))
+          if (hasBinding(path, 'process'))
             return;
           if (truthy) {
             state.processGuard = false;
@@ -1185,7 +1193,7 @@ module.exports = function ({ types: t }) {
           return;
         }
 
-        if (!path.scope.hasBinding(identifierName)) {
+        if (!hasBinding(path, identifierName)) {
           state.globalRefs.add(path.node.name);
           if (strictReservedOrKeyword[identifierName] && identifierName !== 'null') {
             state.usesGlobal = true;
@@ -1226,7 +1234,7 @@ module.exports = function ({ types: t }) {
           return t.isFunction(binding.path.parent) && binding.path.parent.params[0] === binding.path.node &&
             t.isCallExpression(binding.path.parentPath.parentPath) && binding.path.parentPath.parentPath.node.arguments[0] === binding.path.parent;
         }
-        if (identifierName === 'require' && (!path.scope.hasBinding('require') || isRequireFunctionWrapper(path.scope.getBinding('require')))) {
+        if (identifierName === 'require' && (!hasBinding(path, 'require') || isRequireFunctionWrapper(path.scope.getBinding('require')))) {
           let parentPath = path.parentPath;
           if (t.isCallExpression(parentPath) && parentPath.node.callee === path.node) {
             const parentParentNode = parentPath.parentPath && parentPath.parentPath.node;
@@ -1274,13 +1282,13 @@ module.exports = function ({ types: t }) {
         else if (!state.opts.browserOnly && identifierName === '__non_webpack_require__') {
           path.replaceWith(getNodeRequireBinding(path, state));
         }
-        else if (!state.hasProcess && !state.processGuard && identifierName === 'process' && !path.scope.hasBinding('process')) {
+        else if (!state.hasProcess && !state.processGuard && identifierName === 'process' && !hasBinding(path, 'process')) {
           state.hasProcess = true;
         }
-        else if (!state.hasBuffer && !state.bufferGuard && identifierName === 'Buffer' && !path.scope.hasBinding('Buffer')) {
+        else if (!state.hasBuffer && !state.bufferGuard && identifierName === 'Buffer' && !hasBinding(path, 'Buffer')) {
           state.hasBuffer = true;
         }
-        else if (identifierName === 'module' && !path.scope.hasBinding('module')) {
+        else if (identifierName === 'module' && !hasBinding(path, 'module')) {
           let parentPath = path.parentPath;
           let parentNode = parentPath.node;
           if (t.isMemberExpression(parentNode) && parentNode.object === path.node) {
@@ -1315,7 +1323,7 @@ module.exports = function ({ types: t }) {
                 }
               break;
               case 'exports':
-                if (!path.scope.hasBinding('exports')) {
+                if (!hasBinding(path, 'exports')) {
                   state.moduleDotExports.push(parentPath);
                   break;
                 }
@@ -1333,24 +1341,24 @@ module.exports = function ({ types: t }) {
           }
         }
 
-        if (identifierName === '__filename' && state.opts.filename && !path.scope.hasBinding('__filename')) {
+        if (identifierName === '__filename' && state.opts.filename && !hasBinding(path, '__filename')) {
           path.replaceWith(filenameReplace);
         }
-        else if (identifierName === '__dirname' && state.opts.dirname && !path.scope.hasBinding('__dirname')) {
+        else if (identifierName === '__dirname' && state.opts.dirname && !hasBinding(path, '__dirname')) {
           path.replaceWith(dirnameReplace);
         }
-        else if (identifierName === 'global' && !path.scope.hasBinding('global')) {
+        else if (identifierName === 'global' && !hasBinding(path, 'global')) {
           state.usesGlobal = true;
           path.replaceWith(state.globalIdentifier);
         }
-        else if (identifierName === 'define' && !path.scope.hasBinding('define')) {
+        else if (identifierName === 'define' && !hasBinding(path, 'define')) {
           path.replaceWith(t.identifier('undefined'));
           dce(path);
         }
-        else if (identifierName === 'exports' && !path.scope.hasBinding('exports')) {
+        else if (identifierName === 'exports' && !hasBinding(path, 'exports')) {
           state.usesExports = true;
         }
-        else if (identifierName === 'setImmediate' && !path.scope.hasBinding('setImmediate')) {
+        else if (identifierName === 'setImmediate' && !hasBinding(path, 'setImmediate')) {
           if (t.isUnaryExpression(path.parentPath.node, { operator: 'typeof' }) &&
               (t.isBinaryExpression(path.parentPath.parentPath.node, { operator: '===' }) || t.isBinaryExpression(path.parentPath.parentPath.node, { operator: '!==' })) &&
               (t.isConditionalExpression(path.parentPath.parentPath.parentPath.node) && path.parentPath.parentPath.parentPath.node.test === path.parentPath.parentPath.node ||
@@ -1358,7 +1366,7 @@ module.exports = function ({ types: t }) {
             path.stop();
             return;
           }
-          if (path.scope.hasBinding('process')) {
+          if (hasBinding(path, 'process')) {
             state.processId = state.processId || path.scope.generateUidIdentifier('process');
             path.replaceWith(t.memberExpression(state.processId, t.identifier('nextTick')));
           }
@@ -1436,7 +1444,7 @@ module.exports = function ({ types: t }) {
            * Strict conversion (should really be extended to all assignment forms: destructuring, update expression, iterator assignment)
            * p = 5; where p is unbound -> p added to top scope
            */
-          if (!state.isStrict && !path.scope.hasBinding(identifierName) && cjsScopeVars.indexOf(identifierName) === -1) {
+          if (!state.isStrict && !hasBinding(path, identifierName) && cjsScopeVars.indexOf(identifierName) === -1) {
             state.usesGlobal = true;
             path.replaceWith(t.assignmentExpression('=', t.memberExpression(state.globalIdentifier, path.node.left), path.node.right));
           }
@@ -1449,15 +1457,15 @@ module.exports = function ({ types: t }) {
         if (path.node.operator === 'typeof') {
           if (t.isIdentifier(path.node.argument)) {
             let identifierName = path.node.argument.name;
-            if (identifierName === 'require' && !path.scope.hasBinding(identifierName)) {
+            if (identifierName === 'require' && !hasBinding(path, identifierName)) {
               path.replaceWith(t.stringLiteral('function'));
               dce(path);
             }
-            else if (identifierName === 'module' && !path.scope.hasBinding(identifierName)) {
+            else if (identifierName === 'module' && !hasBinding(path, identifierName)) {
               path.replaceWith(t.stringLiteral('object'));
               dce(path);
             }
-            else if (identifierName === 'exports' && !path.scope.hasBinding(identifierName)) {
+            else if (identifierName === 'exports' && !hasBinding(path, identifierName)) {
               path.replaceWith(t.stringLiteral('object'));
               dce(path);
             }
