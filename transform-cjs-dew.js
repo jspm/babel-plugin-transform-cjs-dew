@@ -1359,8 +1359,9 @@ module.exports = function ({ types: t }) {
           state.usesExports = true;
         }
         else if (identifierName === 'setImmediate' && !hasBinding(path, 'setImmediate')) {
+          // typeof setImmediate [!=]== 
           if (t.isUnaryExpression(path.parentPath.node, { operator: 'typeof' }) &&
-              (t.isBinaryExpression(path.parentPath.parentPath.node, { operator: '===' }) || t.isBinaryExpression(path.parentPath.parentPath.node, { operator: '!==' })) &&
+              (t.isBinaryExpression(path.parentPath.parentPath.node) || t.isBinaryExpression(path.parentPath.parentPath.node)) &&
               (t.isConditionalExpression(path.parentPath.parentPath.parentPath.node) && path.parentPath.parentPath.parentPath.node.test === path.parentPath.parentPath.node ||
               t.isLogicalExpression(path.parentPath.parentPath.parentPath.node) && path.parentPath.parentPath.parentPath.node.left === path.parentPath.parentPath.node)) {
             path.stop();
