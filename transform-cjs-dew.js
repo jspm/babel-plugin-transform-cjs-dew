@@ -381,6 +381,9 @@ module.exports = function ({ types: t }) {
       else if (node.left.value !== typeString)
         return null;
     }
+    else {
+      return null;
+    }
     return truthy;
   }
 
@@ -394,7 +397,7 @@ module.exports = function ({ types: t }) {
       Program: {
         enter (path, state) {
           moduleNode = path.node;
-          state.processGuard = 0;
+          state.processGuard = false;
           state.source = path.getSource();
 
           if (path.hub.file.shebang)
