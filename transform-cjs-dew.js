@@ -396,6 +396,7 @@ module.exports = function ({ types: t }) {
     visitor: {
       Program: {
         enter (path, state) {
+          thisOrGlobal = null;
           moduleNode = path.node;
           state.processGuard = false;
           state.source = path.getSource();
@@ -1028,11 +1029,29 @@ module.exports = function ({ types: t }) {
         if (!binding)
           return;
 
+        const bindingNode = path.node;
+
+        // not a real constant violation, if its a declaration inside of a function
+        const isFunctionBinding = t.isFunction(path.node);
+        const constantViolations = binding.constantViolations.filter(violation => {
+          if (!isFunctionBinding) return true;
+          let path = violation;
+          do {
+            if (path.node === bindingNode) {
+              return false;
+            }
+            if (path.parentPath && path.parentPath.node === bindingNode && bindingNode.params.includes(path.node)) {
+              return true;
+            }
+          } while (path = path.parentPath);
+          return true;
+        });
+
         // if there are function declarations after this one,
         // remove this and them except the last
-        if (binding.constantViolations.length) {
-          const includesThisPath = binding.constantViolations.some(refPath => refPath.node === path.node);
-          const fnPaths = [...includesThisPath ? [] : [path], ...binding.constantViolations]
+        if (constantViolations.length) {
+          const includesThisPath = constantViolations.some(refPath => refPath.node === path.node);
+          const fnPaths = [...includesThisPath ? [] : [path], ...constantViolations]
             .filter(path => t.isFunctionDeclaration(path.node))
             .sort((pathA, pathB) => pathA.node.start > pathB.node.start ? 1 : -1);
 
@@ -1046,7 +1065,7 @@ module.exports = function ({ types: t }) {
         }
 
         // replace all duplicate vars with assignments
-        for (const refPath of binding.constantViolations) {
+        for (const refPath of constantViolations) {
           if (t.isVariableDeclarator(refPath.node)) {
             if (t.isIdentifier(refPath.node.id)) {
               if (t.isForOfStatement(refPath.parentPath.parentPath) ||
