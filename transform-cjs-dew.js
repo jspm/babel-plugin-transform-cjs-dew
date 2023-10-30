@@ -764,17 +764,15 @@ module.exports = function ({ types: t }) {
                 )]));
             for (let i = state.deps.length - 1; i >= 0; i--) {
               const dep = state.deps[i];
-              if (dep.ns && dep.mid.name !== dep.id.name)
-                unshiftBody(path, 
-                  t.variableDeclaration('var', [t.variableDeclarator(
-                    dep.id,
-                    t.conditionalExpression(
-                      t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
-                      t.memberExpression(dep.mid, defaultIdentifier),
-                      dep.mid
-                    )
-                  )])
-                );
+              if (dep.ns && dep.mid.name !== dep.id.name) {
+                unshiftBody(path, t.tryStatement(t.blockStatement([
+                  t.ifStatement(
+                    t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
+                    t.expressionStatement(t.assignmentExpression('=', dep.id, t.memberExpression(dep.mid, defaultIdentifier)))
+                  )
+                ]), t.catchClause(t.identifier('e'), t.blockStatement([]))));
+                unshiftBody(path, t.variableDeclaration('var', [t.variableDeclarator(dep.id, dep.mid)]));
+              }
               unshiftBody(path, 
                 t.importDeclaration([
                   dep.dew && !dep.ns ? t.importSpecifier(dep.mid, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.mid)
@@ -832,17 +830,17 @@ module.exports = function ({ types: t }) {
                 dep.dew && !dep.ns ? t.importSpecifier(dep.mid, dewIdentifier) : (dep.ns ? t.importNamespaceSpecifier : t.importDefaultSpecifier)(dep.mid)
               ], dep.literal)
             );
-            if (dep.ns && dep.mid.name !== dep.id.name)
+            if (dep.ns && dep.mid.name !== dep.id.name) {
               dewBodyWrapper.push(
-                t.variableDeclaration('var', [t.variableDeclarator(
-                  dep.id,
-                  t.conditionalExpression(
-                    t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
-                    t.memberExpression(dep.mid, defaultIdentifier),
-                    dep.mid
-                  )
-                )])
+                t.variableDeclaration('var', [t.variableDeclarator(dep.id, dep.mid)])
               );
+              dewBodyWrapper.push(t.tryStatement(t.blockStatement([
+                t.ifStatement(
+                  t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
+                  t.expressionStatement(t.assignmentExpression('=', dep.id, t.memberExpression(dep.mid, defaultIdentifier)))
+                )
+              ]), t.catchClause(t.identifier('e'), t.blockStatement([]))));
+            }
           });
 
           const execIdentifier = path.scope.generateUidIdentifier('dewExec');
