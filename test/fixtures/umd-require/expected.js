@@ -1,7 +1,7 @@
 import { dew as _quickStartDew } from "./quick-start";
 var exports = {};
 (function (factory) {
-  {
+  if (true) {
     var v = factory(null, exports);
     if (v !== undefined) exports = v;
   }

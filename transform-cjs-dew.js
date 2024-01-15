@@ -311,17 +311,22 @@ module.exports = function ({ types: t }) {
         if (truthy) {
           if (alternate.node)
             alternate.remove();
-          if (t.isBlockStatement(consequent.node) && consequent.node.body.length === 1 && t.isExpressionStatement(consequent.node.body[0])) {
-            path.parentPath.replaceWith(consequent.node.body[0]);
+          if (t.isBlockStatement(consequent.node)) {
+            if (consequent.node.body.length === 1 && t.isExpressionStatement(consequent.node.body[0])) {
+              path.parentPath.replaceWith(consequent.node.body[0]);
+            }
           }
           else {
             path.parentPath.replaceWith(consequent);
           }
         }
         else {
-          consequent.remove();
-          if (t.isBlockStatement(alternate.node) && alternate.node.body.length === 1 && t.isExpressionStatement(alternate.node.body[0])) {
-            path.parentPath.replaceWith(alternate.node.body[0]);
+          if (consequent.node)
+            consequent.remove();
+          if (t.isBlockStatement(alternate.node)) {
+            if (alternate.node.body.length === 1 && t.isExpressionStatement(alternate.node.body[0])) {
+              path.parentPath.replaceWith(alternate.node.body[0]);
+            }
           }
           else if (alternate.node) {
             path.parentPath.replaceWith(alternate);
