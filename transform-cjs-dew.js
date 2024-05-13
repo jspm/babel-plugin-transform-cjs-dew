@@ -22,12 +22,18 @@ const strictReservedOrKeyword = Object.assign(
 });
 
 function hasBinding (path, bindingName) {
-  // Babel bug with replacement scoping creating circular scope
-  // work around by calling the id check directly
-  if (path.scope === path.scope.parentScope) {
-   return path.scope.hasOwnBinding(bindingName);
-  }
   return path.scope.hasBinding(bindingName);
+}
+
+function isLive(path) {
+  const seen = new Set();
+  let curPath = path;
+  while (curPath) {
+    if (seen.has(curPath)) return false;
+    seen.add(curPath);
+    curPath = curPath.parentPath;
+  }
+  return true;
 }
 
 const topLevelReserved = Object.assign(
@@ -132,6 +138,14 @@ module.exports = function ({ types: t }) {
 
   function canResolvePartialWildcardString (node) {
     return t.isStringLiteral(node) || t.isTemplateLiteral(node) && node.quasis[0].value.cooked.length || t.isBinaryExpression(node) || t.isIdentifier(node) && node.name === '__dirname';
+  }
+
+  // typeof setImmediate [!=]== 
+  function isLogicalOrConditionalBinaryExpression (path) {
+    return t.isBinaryExpression(path.node) && (
+      t.isConditionalExpression(path.parentPath.node) && path.parentPath.node.test === path.node ||
+      t.isLogicalExpression(path.parentPath.node) && path.parentPath.node.left === path.node
+    );
   }
 
   function addDependency (path, state, depModuleArg, optional = false) {
@@ -307,11 +321,13 @@ module.exports = function ({ types: t }) {
         let consequent = path.parentPath.get('consequent');
         let alternate = path.parentPath.get('alternate');
 
-        path.stop();
+        path.skip();
   
         if (truthy) {
-          if (alternate.node)
+          if (alternate.node) {
+            alternate.skip();
             alternate.remove();
+          }
           if (t.isBlockStatement(consequent.node)) {
             if (consequent.node.body.length === 1 && t.isExpressionStatement(consequent.node.body[0])) {
               path.parentPath.replaceWith(consequent.node.body[0]);
@@ -322,8 +338,10 @@ module.exports = function ({ types: t }) {
           }
         }
         else {
-          if (consequent.node)
+          if (consequent.node) {
+            consequent.skip();
             consequent.remove();
+          }
           if (t.isBlockStatement(alternate.node)) {
             if (alternate.node.body.length === 1 && t.isExpressionStatement(alternate.node.body[0])) {
               path.parentPath.replaceWith(alternate.node.body[0]);
@@ -343,7 +361,7 @@ module.exports = function ({ types: t }) {
       let consequent = path.parentPath.get('consequent');
       let alternate = path.parentPath.get('alternate');
 
-      path.stop();
+      path.skip();
 
       if (parentNode.test.value) {
         alternate.data = 'dead';
@@ -1118,6 +1136,7 @@ module.exports = function ({ types: t }) {
             }
             else if (path.node.init === null) {
               const name = path.node.id.name;
+              path.skip();
               path.remove();
               path.parentPath.scope.registerBinding(name, newBinding.get('id'));
             }
@@ -1208,7 +1227,7 @@ module.exports = function ({ types: t }) {
        * detect usage of module
        */
       ReferencedIdentifier (path, state) {
-        if (state.inserting)
+        if (state.inserting || !isLive(path))
           return;
         let identifierName = path.node.name;
 
@@ -1385,12 +1404,10 @@ module.exports = function ({ types: t }) {
           state.usesExports = true;
         }
         else if (identifierName === 'setImmediate' && !hasBinding(path, 'setImmediate')) {
-          // typeof setImmediate [!=]== 
-          if (t.isUnaryExpression(path.parentPath.node, { operator: 'typeof' }) &&
-              (t.isBinaryExpression(path.parentPath.parentPath.node) || t.isBinaryExpression(path.parentPath.parentPath.node)) &&
-              (t.isConditionalExpression(path.parentPath.parentPath.parentPath.node) && path.parentPath.parentPath.parentPath.node.test === path.parentPath.parentPath.node ||
-              t.isLogicalExpression(path.parentPath.parentPath.parentPath.node) && path.parentPath.parentPath.parentPath.node.left === path.parentPath.parentPath.node)) {
-            path.stop();
+          if (t.isUnaryExpression(path.parentPath.node, { operator: 'typeof' }) && isLogicalOrConditionalBinaryExpression(path.parentPath.parentPath)) {
+            return;
+          }
+          if (t.isConditionalExpression(path.parentPath) && isLogicalOrConditionalBinaryExpression(path.parentPath.get('test')) && t.isUnaryExpression(path.parentPath.node.test.right, { operator: 'typeof' }) && t.isIdentifier(path.parentPath.node.test.right.argument, { name: 'setImmediate' })) {
             return;
           }
           if (hasBinding(path, 'process')) {
@@ -1499,6 +1516,7 @@ module.exports = function ({ types: t }) {
           }
         }
         if (path.node.operator === 'delete' && t.isIdentifier(path.node.argument)) {
+          path.skip();
           path.remove();
         }
       }
