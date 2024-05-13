@@ -24,8 +24,9 @@ const strictReservedOrKeyword = Object.assign(
 function hasBinding (path, bindingName) {
   // Babel bug with replacement scoping creating circular scope
   // work around by calling the id check directly
-  if (path.scope === path.scope.parent)
+  if (path.scope === path.scope.parentScope) {
    return path.scope.hasOwnBinding(bindingName);
+  }
   return path.scope.hasBinding(bindingName);
 }
 

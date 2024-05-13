@@ -427,6 +427,7 @@ var exports = {};
   // declare themselves as anonymous modules, and avoid setting a global if an
   // AMD loader is present. jQuery is a special case. For more information, see
   // https://github.com/jrburke/requirejs/wiki/Updating-existing-libraries#wiki-anon
+
   var
     // Map over jQuery in case of overwrite
     _jQuery = window.jQuery,

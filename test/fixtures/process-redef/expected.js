@@ -44,7 +44,6 @@ function processArgs(argv, options, fs, path) {
       if (Array.isArray(argumentValue)) {
         argumentValue = argumentValue.pop(); // If the same argument is defined multiple times, override.
       }
-
       options[helper.dashToCamel(name)] = argumentValue;
     }
   });
