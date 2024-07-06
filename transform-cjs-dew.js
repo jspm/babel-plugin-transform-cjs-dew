@@ -792,7 +792,7 @@ module.exports = function ({ types: t }) {
               if (dep.ns && dep.mid.name !== dep.id.name) {
                 unshiftBody(path, t.variableDeclaration('var', [
                   t.variableDeclarator(dep.id, t.conditionalExpression(
-                    t.memberExpression(dep.mid, t.identifier('__cjs')),
+                    t.memberExpression(dep.mid, t.identifier('__cjsModule')),
                     t.memberExpression(dep.mid, t.identifier('default')),
                     t.conditionalExpression(
                       t.logicalExpression('&&', t.binaryExpression('in', t.stringLiteral('default'), dep.mid), t.unaryExpression('!', t.memberExpression(dep.mid, t.identifier('__esModule')))),
@@ -852,7 +852,7 @@ module.exports = function ({ types: t }) {
               }
 
               if (state.opts.cjsMarker) {
-                exportDeclarations.push(t.variableDeclarator(t.identifier('__cjs'), t.booleanLiteral(true)));
+                exportDeclarations.push(t.variableDeclarator(t.identifier('__cjsModule'), t.booleanLiteral(true)));
               }
 
               if (exportDeclarations.length)
@@ -879,7 +879,7 @@ module.exports = function ({ types: t }) {
               innerWrapper.push(
                 t.variableDeclaration('var', [
                   t.variableDeclarator(dep.id, t.conditionalExpression(
-                    t.memberExpression(dep.mid, t.identifier('__cjs')),
+                    t.memberExpression(dep.mid, t.identifier('__cjsModule')),
                     t.memberExpression(dep.mid, t.identifier('default')),
                     t.conditionalExpression(
                       t.logicalExpression('&&', t.binaryExpression('in', t.stringLiteral('default'), dep.mid), t.unaryExpression('!', t.memberExpression(dep.mid, t.identifier('__esModule')))),
