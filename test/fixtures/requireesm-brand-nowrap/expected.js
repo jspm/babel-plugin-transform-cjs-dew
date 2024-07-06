@@ -18,3 +18,4 @@ const {
 } = _thing;
 readFileSync("asdf");
 export default {};
+export const __cjs = true;
