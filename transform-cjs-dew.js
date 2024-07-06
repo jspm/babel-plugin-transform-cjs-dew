@@ -790,13 +790,26 @@ module.exports = function ({ types: t }) {
             for (let i = state.deps.length - 1; i >= 0; i--) {
               const dep = state.deps[i];
               if (dep.ns && dep.mid.name !== dep.id.name) {
-                unshiftBody(path, t.tryStatement(t.blockStatement([
-                  t.ifStatement(
-                    t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
-                    t.expressionStatement(t.assignmentExpression('=', dep.id, t.memberExpression(dep.mid, defaultIdentifier)))
-                  )
-                ]), t.catchClause(t.identifier('e'), t.blockStatement([]))));
-                unshiftBody(path, t.variableDeclaration('var', [t.variableDeclarator(dep.id, dep.mid)]));
+                unshiftBody(path, t.variableDeclaration('var', [
+                  t.variableDeclarator(dep.id, t.conditionalExpression(
+                    t.memberExpression(dep.mid, t.identifier('__cjs')),
+                    t.memberExpression(dep.mid, t.identifier('default')),
+                    t.conditionalExpression(
+                      t.logicalExpression('&&', t.binaryExpression('in', t.stringLiteral('default'), dep.mid), t.unaryExpression('!', t.memberExpression(dep.mid, t.identifier('__esModule')))),
+                      t.newExpression(t.identifier('Proxy'), [dep.mid, t.objectExpression([
+                        t.objectProperty(t.identifier('get'), t.arrowFunctionExpression([t.identifier('t'), t.identifier('k'), t.identifier('r')], t.logicalExpression('||',
+                          t.binaryExpression('===', t.identifier('k'), esModuleLiteral),
+                          t.callExpression(t.memberExpression(t.identifier('Reflect'), t.identifier('get')), [t.identifier('t'), t.identifier('k'), t.identifier('r')])
+                        ))),
+                        t.objectProperty(t.identifier('has'), t.arrowFunctionExpression([t.identifier('t'), t.identifier('k')], t.logicalExpression('||',
+                          t.binaryExpression('===', t.identifier('k'), esModuleLiteral),
+                          t.callExpression(t.memberExpression(t.identifier('Reflect'), t.identifier('has')), [t.identifier('t'), t.identifier('k')])
+                        )))
+                      ])]),
+                      dep.mid
+                    )
+                  ))
+                ]));
               }
               unshiftBody(path, 
                 t.importDeclaration([
