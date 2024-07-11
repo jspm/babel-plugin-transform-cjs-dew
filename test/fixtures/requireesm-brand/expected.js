@@ -6,11 +6,11 @@ var exports = {},
 export function dew() {
   if (_dewExec) return exports;
   _dewExec = true;
-  var _nobinding = _nobinding2.__cjsModule ? _nobinding2.default : "default" in _nobinding2 && !_nobinding2.__esModule ? new Proxy(_nobinding2, {
+  var _nobinding = _nobinding2.__cjsModule ? _nobinding2.default : "default" in _nobinding2 && !("__esModule" in _nobinding2) ? new Proxy(_nobinding2, {
     get: (t, k, r) => k === "__esModule" || Reflect.get(t, k, r),
     has: (t, k) => k === "__esModule" || Reflect.has(t, k)
   }) : _nobinding2;
-  var _fs = _fs2.__cjsModule ? _fs2.default : "default" in _fs2 && !_fs2.__esModule ? new Proxy(_fs2, {
+  var _fs = _fs2.__cjsModule ? _fs2.default : "default" in _fs2 && !("__esModule" in _fs2) ? new Proxy(_fs2, {
     get: (t, k, r) => k === "__esModule" || Reflect.get(t, k, r),
     has: (t, k) => k === "__esModule" || Reflect.has(t, k)
   }) : _fs2;

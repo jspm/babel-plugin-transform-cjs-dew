@@ -795,7 +795,7 @@ module.exports = function ({ types: t }) {
                     t.memberExpression(dep.mid, t.identifier('__cjsModule')),
                     t.memberExpression(dep.mid, t.identifier('default')),
                     t.conditionalExpression(
-                      t.logicalExpression('&&', t.binaryExpression('in', t.stringLiteral('default'), dep.mid), t.unaryExpression('!', t.memberExpression(dep.mid, t.identifier('__esModule')))),
+                      t.logicalExpression('&&', t.binaryExpression('in', t.stringLiteral('default'), dep.mid), t.unaryExpression('!', t.binaryExpression('in', t.stringLiteral('__esModule'), dep.mid))),
                       t.newExpression(t.identifier('Proxy'), [dep.mid, t.objectExpression([
                         t.objectProperty(t.identifier('get'), t.arrowFunctionExpression([t.identifier('t'), t.identifier('k'), t.identifier('r')], t.logicalExpression('||',
                           t.binaryExpression('===', t.identifier('k'), esModuleLiteral),
@@ -882,7 +882,7 @@ module.exports = function ({ types: t }) {
                     t.memberExpression(dep.mid, t.identifier('__cjsModule')),
                     t.memberExpression(dep.mid, t.identifier('default')),
                     t.conditionalExpression(
-                      t.logicalExpression('&&', t.binaryExpression('in', t.stringLiteral('default'), dep.mid), t.unaryExpression('!', t.memberExpression(dep.mid, t.identifier('__esModule')))),
+                      t.logicalExpression('&&', t.binaryExpression('in', t.stringLiteral('default'), dep.mid), t.unaryExpression('!', t.binaryExpression('in', t.stringLiteral('__esModule'), dep.mid))),
                       t.newExpression(t.identifier('Proxy'), [dep.mid, t.objectExpression([
                         t.objectProperty(t.identifier('get'), t.arrowFunctionExpression([t.identifier('t'), t.identifier('k'), t.identifier('r')], t.logicalExpression('||',
                           t.binaryExpression('===', t.identifier('k'), esModuleLiteral),
