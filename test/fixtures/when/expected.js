@@ -189,7 +189,7 @@ export function dew() {
        * @param {...*} arguments may be a mix of promises and values
        * @returns {Promise}
        */
-      function join( /* ...promises */
+      function join(/* ...promises */
       ) {
         return Promise.all(arguments);
       }

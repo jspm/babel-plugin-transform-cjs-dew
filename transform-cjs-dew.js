@@ -47,6 +47,32 @@ const transformIds = Object.assign(
     "process":1, "Buffer":1, "global":1, "exports":1, "module":1
 });
 
+function createProcessGuard (guardFn) {
+  return {
+    enter (path, state) {
+      // hasProcess being set to true is always gated on the process guard, so this is reliable in both enter and exit
+      // even if it werent, once we have process that's the same as a positive process guard anyway
+      if (state.hasProcess)
+        return;
+      if (!guardFn(path, state))
+        return;
+      // this is invariant of visitation
+      if (hasBinding(path, 'process'))
+        return;
+      state.processGuard++;
+    },
+    exit (path, state) {
+      if (state.hasProcess)
+        return;
+      if (!guardFn(path, state))
+        return;
+      if (hasBinding(path, 'process'))
+        return;
+      state.processGuard--;
+    }
+  };
+}
+
 module.exports = function ({ types: t }) {
   const exportsIdentifier = t.identifier('exports');
   const moduleIdentifier = t.identifier('module');
@@ -422,7 +448,7 @@ module.exports = function ({ types: t }) {
         enter (path, state) {
           thisOrGlobal = null;
           moduleNode = path.node;
-          state.processGuard = false;
+          state.processGuard = 0;
           state.source = path.getSource();
 
           if (path.hub.file.shebang)
@@ -1177,49 +1203,44 @@ module.exports = function ({ types: t }) {
           state.usesExports = true;
       },
 
-      // Check process guards
-      // TODO: check IfStatment and ConditionalStatement forms
-      // although this is the most common
-      LogicalExpression: {
-        enter (path, state) {
-          if (state.hasProcess || state.processGuard)
-            return;
+      // Check process guards: don't include process statements guarded by typeof checks on process
+      LogicalExpression: createProcessGuard((path, state) => {
+        let truthy = false;
+        if (path.node.operator === '&&')
+          truthy = true;
+        else if (path.node.operator !== '||' && path.node.operator !== '??')
+          return;
+        let processCheck = getIfTypeOfCheck(path.node.left, 'process', 'object');
+        if (processCheck === null)
+          return;
+        if (processCheck === false)
+          truthy = !truthy;
+        return truthy;
+      }),
+      ConditionalExpression: createProcessGuard(function (path, state) {
+        return getIfTypeOfCheck(path.node.test, 'process', 'object');
+      }),
+      IfStatement: createProcessGuard(function (path, state) {
+        // support any logical expression on:
+        // - typeof process === 'object' && ... && ...
+        // - typeof process !== 'object' || ... || ...
+        // further variations could be added here in future as needed
+        if (t.isLogicalExpression(path.node.test)) {
           let truthy = false;
-          if (path.node.operator === '&&')
+          if (path.node.test.operator === '&&')
             truthy = true;
-          else if (path.node.operator !== '||' && path.node.operator !== '??')
+          else if (path.node.test.operator !== '||' && path.node.test.operator !== '??')
             return;
-          let processCheck = getIfTypeOfCheck(path.node.left, 'process', 'object');
+          let processCheck = getIfTypeOfCheck(path.node.test.left, 'process', 'object');
           if (processCheck === null)
             return;
           if (processCheck === false)
             truthy = !truthy;
-          if (!truthy)
-            return;
-          if (hasBinding(path, 'process'))
-            return;
-          state.processGuard = true;
-        },
-        exit (path, state) {
-          if (state.hasProcess || !state.processGuard)
-            return;
-          let truthy = false;
-          if (path.node.operator === '&&')
-            truthy = true;
-          else if (path.node.operator !== '||' && path.node.operator !== '??')
-            return;
-          let processCheck = getIfTypeOfCheck(path.node.left, 'process', 'object');
-          if (processCheck === null)
-            return;
-          if (processCheck === false)
-            truthy = !truthy;
-          if (hasBinding(path, 'process'))
-            return;
-          if (truthy) {
-            state.processGuard = false;
-          }
+          return truthy;
+        } else {
+          return getIfTypeOfCheck(path.node.test.left, 'process', 'object');
         }
-      },
+      }),
 
       /*
        * process / Buffer become imports
