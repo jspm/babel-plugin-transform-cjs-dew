@@ -86,6 +86,7 @@ As well as execution wrapping, the following code transformations are handled:
 * Internal `this` references that are not direct calls, fallback to _global.
 * Implicit globals of the form `globalName = ...` are rescoped for a simple strict module conversion.
 * Use of `Buffer` and `process` is transformed into an import of `buffer` or `process`. This module name can be customized by the `map` configuration option.
+* Replacement of `arguments.callee` with the function name
 
 The remaining strict conversion cases that don't convert are then just the edge cases of loose -> strict mode conversion:
 * Any use of `with` statements will throw

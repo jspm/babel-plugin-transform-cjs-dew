@@ -1020,6 +1020,18 @@ module.exports = function ({ types: t }) {
               path.replaceWith(t.identifier('undefined'));
           }
         }
+        else if (state.functionDepth > 0 && t.isIdentifier(path.node.object, { name: 'arguments' }) && t.isIdentifier(path.node.property, { name: 'callee' })) {
+          let funcPath = path;
+          let func = funcPath.scope.block;
+          while (!t.isFunction(func)) {
+            funcPath = funcPath.parentPath;
+            func = funcPath.scope.block;
+          }
+          if (!func.id) {
+            func.id = funcPath.scope.generateUidIdentifier();
+          }
+          path.replaceWith(func.id);
+        }
       },
 
       Scope: {
