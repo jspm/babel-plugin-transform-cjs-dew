@@ -80,6 +80,7 @@ module.exports = function ({ types: t }) {
   const dewInterop = t.identifier('__dew');
   const defaultIdentifier = t.identifier('default');
 
+  const esModuleLiteral = t.stringLiteral('__esModule');
   const globalThis = t.identifier('globalThis');
   const globalThisPredicate = t.binaryExpression('!==', t.unaryExpression('typeof', globalThis), t.stringLiteral('undefined'));
   const selfIdentifier = t.identifier('self');
@@ -815,13 +816,26 @@ module.exports = function ({ types: t }) {
             for (let i = state.deps.length - 1; i >= 0; i--) {
               const dep = state.deps[i];
               if (dep.ns && dep.mid.name !== dep.id.name) {
-                unshiftBody(path, t.tryStatement(t.blockStatement([
-                  t.ifStatement(
-                    t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
-                    t.expressionStatement(t.assignmentExpression('=', dep.id, t.memberExpression(dep.mid, defaultIdentifier)))
-                  )
-                ]), t.catchClause(t.identifier('e'), t.blockStatement([]))));
-                unshiftBody(path, t.variableDeclaration('var', [t.variableDeclarator(dep.id, dep.mid)]));
+                unshiftBody(path, t.variableDeclaration('var', [
+                  t.variableDeclarator(dep.id, t.conditionalExpression(
+                    t.memberExpression(dep.mid, t.identifier('__cjsModule')),
+                    t.memberExpression(dep.mid, t.identifier('default')),
+                    t.conditionalExpression(
+                      t.logicalExpression('&&', t.binaryExpression('in', t.stringLiteral('default'), dep.mid), t.unaryExpression('!', t.binaryExpression('in', t.stringLiteral('__esModule'), dep.mid))),
+                      t.newExpression(t.identifier('Proxy'), [dep.mid, t.objectExpression([
+                        t.objectProperty(t.identifier('get'), t.arrowFunctionExpression([t.identifier('t'), t.identifier('k'), t.identifier('r')], t.logicalExpression('||',
+                          t.binaryExpression('===', t.identifier('k'), esModuleLiteral),
+                          t.callExpression(t.memberExpression(t.identifier('Reflect'), t.identifier('get')), [t.identifier('t'), t.identifier('k'), t.identifier('r')])
+                        ))),
+                        t.objectProperty(t.identifier('has'), t.arrowFunctionExpression([t.identifier('t'), t.identifier('k')], t.logicalExpression('||',
+                          t.binaryExpression('===', t.identifier('k'), esModuleLiteral),
+                          t.callExpression(t.memberExpression(t.identifier('Reflect'), t.identifier('has')), [t.identifier('t'), t.identifier('k')])
+                        )))
+                      ])]),
+                      dep.mid
+                    )
+                  ))
+                ]));
               }
               unshiftBody(path, 
                 t.importDeclaration([
@@ -843,11 +857,11 @@ module.exports = function ({ types: t }) {
                 t.exportDefaultDeclaration(exportsReturn)
               );
 
-            if (state.opts.namedExports && state.opts.namedExports.length) {
+            if (state.opts.namedExports && state.opts.namedExports.length || state.opts.cjsMarker) {
               const exportDeclarations = [];
               const namedExports = [];
               const varDeclarations = [];
-              for (const name of state.opts.namedExports) {
+              for (const name of state.opts.namedExports || []) {
                 const id = t.identifier(name);
                 if (name === 'default') {
                   if (exportsReturn)
@@ -862,6 +876,11 @@ module.exports = function ({ types: t }) {
                   namedExports.push(t.exportSpecifier(uid, id));
                 }
               }
+
+              if (state.opts.cjsMarker) {
+                exportDeclarations.push(t.variableDeclarator(t.identifier('__cjsModule'), t.booleanLiteral(true)));
+              }
+
               if (exportDeclarations.length)
                 pushBody(path, t.exportNamedDeclaration(t.variableDeclaration('const', exportDeclarations), []));
               if (varDeclarations.length)
@@ -874,6 +893,8 @@ module.exports = function ({ types: t }) {
 
           let dewBodyWrapper = [];
 
+          const innerWrapper = [];
+
           state.deps.forEach(dep => {
             dewBodyWrapper.push(
               t.importDeclaration([
@@ -881,15 +902,28 @@ module.exports = function ({ types: t }) {
               ], dep.literal)
             );
             if (dep.ns && dep.mid.name !== dep.id.name) {
-              dewBodyWrapper.push(
-                t.variableDeclaration('var', [t.variableDeclarator(dep.id, dep.mid)])
+              innerWrapper.push(
+                t.variableDeclaration('var', [
+                  t.variableDeclarator(dep.id, t.conditionalExpression(
+                    t.memberExpression(dep.mid, t.identifier('__cjsModule')),
+                    t.memberExpression(dep.mid, t.identifier('default')),
+                    t.conditionalExpression(
+                      t.logicalExpression('&&', t.binaryExpression('in', t.stringLiteral('default'), dep.mid), t.unaryExpression('!', t.binaryExpression('in', t.stringLiteral('__esModule'), dep.mid))),
+                      t.newExpression(t.identifier('Proxy'), [dep.mid, t.objectExpression([
+                        t.objectProperty(t.identifier('get'), t.arrowFunctionExpression([t.identifier('t'), t.identifier('k'), t.identifier('r')], t.logicalExpression('||',
+                          t.binaryExpression('===', t.identifier('k'), esModuleLiteral),
+                          t.callExpression(t.memberExpression(t.identifier('Reflect'), t.identifier('get')), [t.identifier('t'), t.identifier('k'), t.identifier('r')])
+                        ))),
+                        t.objectProperty(t.identifier('has'), t.arrowFunctionExpression([t.identifier('t'), t.identifier('k')], t.logicalExpression('||',
+                          t.binaryExpression('===', t.identifier('k'), esModuleLiteral),
+                          t.callExpression(t.memberExpression(t.identifier('Reflect'), t.identifier('has')), [t.identifier('t'), t.identifier('k')])
+                        )))
+                      ])]),
+                      dep.mid
+                    )
+                  ))
+                ])
               );
-              dewBodyWrapper.push(t.tryStatement(t.blockStatement([
-                t.ifStatement(
-                  t.binaryExpression('in', t.stringLiteral('default'), dep.mid),
-                  t.expressionStatement(t.assignmentExpression('=', dep.id, t.memberExpression(dep.mid, defaultIdentifier)))
-                )
-              ]), t.catchClause(t.identifier('e'), t.blockStatement([]))));
             }
           });
 
@@ -914,6 +948,7 @@ module.exports = function ({ types: t }) {
               t.functionDeclaration(dewIdentifier, [], t.blockStatement([
                 t.ifStatement(execIdentifier, t.returnStatement(exportsReturn)),
                 t.expressionStatement(t.assignmentExpression('=', execIdentifier, t.booleanLiteral(true))),
+                ...innerWrapper,
                 ...path.node.body,
                 t.returnStatement(exportsReturn)
               ])),
