@@ -99,6 +99,10 @@ module.exports = function ({ types: t }) {
       t.objectProperty(exportsIdentifier, exportsIdentifier)
     ]))
   ]);
+  // module is assigned but never read, so it needs no exports linkage
+  const assignedModuleDeclarator = t.variableDeclaration('var', [
+    t.variableDeclarator(moduleIdentifier, t.objectExpression([]))
+  ]);
 
   // we detect optional require based on pattern matching:
   // try { const? x = require('x') } catch (e) { ... }
@@ -504,6 +508,7 @@ module.exports = function ({ types: t }) {
           state.globalIdentifier = path.scope.generateUidIdentifier('global');
           state.usesGlobal = false;
           state.usesModule = false;
+          state.assignsModule = false;
           state.usesExports = false;
           state.usesDynamicRequire = false;
           state.moduleDotExports = [];
@@ -803,6 +808,8 @@ module.exports = function ({ types: t }) {
 
             if (state.usesModule)
               unshiftBody(path, moduleDeclarator);
+            else if (state.assignsModule)
+              unshiftBody(path, assignedModuleDeclarator);
             if (needsExports)
               unshiftBody(path, t.variableDeclaration('var', [
                 t.variableDeclarator(exportsIdentifier, t.objectExpression([]))
@@ -908,6 +915,8 @@ module.exports = function ({ types: t }) {
 
           if (state.usesModule)
             dewBodyWrapper.push(moduleDeclarator);
+          else if (state.assignsModule)
+            dewBodyWrapper.push(assignedModuleDeclarator);
 
           if (state.usesGlobal)
             dewBodyWrapper.push(
@@ -1219,6 +1228,10 @@ module.exports = function ({ types: t }) {
 
         if (identifierName === 'exports' && !hasBinding(path, identifierName))
           state.usesExports = true;
+        // module = x only rebinds the CJS wrapper argument in Node, so it cannot
+        // affect the exports - it just needs a binding to assign into under strict mode
+        else if (identifierName === 'module' && !hasBinding(path, identifierName))
+          state.assignsModule = true;
       },
 
       // Check process guards: don't include process statements guarded by typeof checks on process

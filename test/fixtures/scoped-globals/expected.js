@@ -1,5 +1,6 @@
 var _global = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : global;
 var exports = {};
+var module = {};
 exports = 1;
 require = 2;
 module = 3;
