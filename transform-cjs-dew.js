@@ -847,17 +847,23 @@ module.exports = function ({ types: t }) {
               const exportDeclarations = [];
               const namedExports = [];
               const varDeclarations = [];
+              // Exported under their own name, so not yet scope bindings when the
+              // aliases below are generated (`_function` vs a reserved `function`).
+              const directNames = new Set(state.opts.namedExports.filter(name =>
+                name !== 'default' && !hasBinding(path, name) && !strictReservedOrKeyword[name] &&
+                !transformIds[name] && !state.globalRefs.has(name)));
               for (const name of state.opts.namedExports) {
                 const id = t.identifier(name);
                 if (name === 'default') {
                   if (exportsReturn)
                     pushBody(path, t.exportDefaultDeclaration(exportsReturn));
                 }
-                else if (!hasBinding(path, name) && !strictReservedOrKeyword[name] && !transformIds[name] && !state.globalRefs.has(name)) {
+                else if (directNames.has(name)) {
                   exportDeclarations.push(t.variableDeclarator(id, t.memberExpression(namedExportsId, id)));
                 }
                 else {
-                  const uid = path.scope.generateUidIdentifier(name);
+                  let uid = path.scope.generateUidIdentifier(name);
+                  while (directNames.has(uid.name)) uid = path.scope.generateUidIdentifier(uid.name);
                   varDeclarations.push(t.variableDeclarator(uid, t.memberExpression(namedExportsId, id)));
                   namedExports.push(t.exportSpecifier(uid, id));
                 }
